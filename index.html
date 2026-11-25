@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Farming: crop monitoring and irrigation</title>
+<meta name="description" content="Web dashboard for the Group B-18 capstone: soil moisture, pump control, sensor faults, leaf disease checks and alerts for one plot.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600&family=Red+Hat+Text:wght@400;500&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Furrow (picked: farm records) · redesign: full
+ * nav: top bar with tabs · signature: the plot as a survey map with the sensor node pinned and its live reading · states: loading, empty, fault, offline, full
+ * axes: light/grotesk-sans/warm · posture: committed · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V4 · weakest: E, the disease tab has no model yet, so its result card says so plainly instead of faking one */
+:root {
+  color-scheme: light;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-micro: 120ms; --dur-short: 220ms;
+  --color-error: oklch(52% 0.19 27); --color-error-soft: oklch(93% 0.04 27); --color-success: oklch(50% 0.12 150);
+  --container: 1240px; --gutter: 32px; --gap-columns: 16px;
+  --color-paper: oklch(96% 0.011 85); --color-paper-2: oklch(99.5% 0.005 85); --color-paper-3: oklch(92% 0.016 85);
+  --color-ink: oklch(18% 0.006 60); --color-ink-2: oklch(28% 0.008 60); --color-muted: oklch(44% 0.012 60); --color-rule: oklch(88% 0.013 85);
+  --color-accent: oklch(70% 0.19 40); --color-accent-ink: oklch(18% 0.006 60); --color-accent-soft: oklch(91% 0.05 50); --color-focus: oklch(60% 0.19 40);
+  --color-green: oklch(48% 0.11 150); --color-green-soft: oklch(92% 0.04 150);
+  --color-contour: oklch(62% 0.07 58); --color-water: oklch(60% 0.05 232); --color-hedge: oklch(50% 0.1 150);
+  --color-grid: oklch(90% 0.014 85); --color-grid-strong: oklch(85% 0.018 85); --color-sheet: oklch(99.3% 0.004 85);
+  --font-display: "Red Hat Display", "Red Hat Text", ui-sans-serif, sans-serif; --font-body: "Red Hat Text", ui-sans-serif, system-ui, sans-serif;
+  --font-outlier: "Red Hat Mono", ui-monospace, monospace;
+  --radius-card: 10px; --radius-entry: 14px; --radius-pill: 6px; --rule-hair: 1px;
+  --shadow-card: 0 1px 2px oklch(18% 0.006 60 / 0.08), 0 14px 28px -16px oklch(18% 0.006 60 / 0.28);
+  --shadow-lift: 0 1px 1px oklch(18% 0.006 60 / 0.1), 0 2px 4px -1px oklch(18% 0.006 60 / 0.1), 0 24px 44px -20px oklch(18% 0.006 60 / 0.42);
+  --tracking-display: -0.035em; --display-weight: 600;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); font-size: var(--text-md); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--color-accent-soft); color: var(--color-ink); }
+html { scrollbar-color: var(--color-muted) var(--color-paper); }
+body { caret-color: var(--color-accent); }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--tracking-display); line-height: 1.05; overflow-wrap: break-word; min-width: 0; text-wrap: balance; }
+h2 { font-size: var(--text-display); }
+h3 { font-size: var(--text-title); line-height: 1.2; letter-spacing: -0.01em; }
+p { margin: 0; text-wrap: pretty; }
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.container { width: 100%; max-width: var(--container); margin-inline: auto; padding-inline: var(--gutter); }
+.num { font-family: var(--font-outlier); font-variant-numeric: tabular-nums; }
+.muted { color: var(--color-muted); }
+.small { font-size: var(--text-sm); }
+
+/* top bar */
+.bar-top { position: sticky; top: 0; z-index: 300; background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-ink); }
+.bar-top .container { display: flex; align-items: center; gap: var(--space-lg); min-height: 64px; flex-wrap: wrap; padding-block: var(--space-xs); }
+.wordmark { display: flex; align-items: baseline; gap: var(--space-xs); }
+.wordmark h1 { font-size: var(--text-lg); }
+.tabs { display: flex; gap: var(--space-2xs); overflow-x: auto; flex: 1; min-width: 0; }
+.tab { min-height: 36px; padding: 0 var(--space-sm); border: 0; border-radius: var(--radius-pill); background: transparent; font-weight: 500; font-size: var(--text-sm); cursor: pointer; white-space: nowrap; color: var(--color-ink-2); transition: background-color var(--dur-micro) var(--ease-out); }
+.tab:hover { background: var(--color-paper-3); }
+.tab:active { transform: translateY(1px); }
+.tab[aria-selected="true"] { background: var(--color-accent); color: var(--color-accent-ink); }
+.top-right { display: flex; gap: var(--space-xs); align-items: center; }
+
+.chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 500; background: var(--color-green-soft); color: var(--color-ink); white-space: nowrap; }
+.chip--warn { background: var(--color-accent-soft); }
+.chip--bad { background: var(--color-error-soft); color: var(--color-error); }
+.chip--plain { background: var(--color-paper-3); }
+.chip--on { background: var(--color-green); color: var(--color-paper-2); }
+
+/* layout */
+main { padding-block: var(--space-xl) var(--space-3xl); }
+.screen-head { display: flex; align-items: end; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; margin-bottom: var(--space-lg); }
+.grid { display: grid; gap: var(--gap-columns); grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; } .span-12 { grid-column: span 12; } .span-4 { grid-column: span 4; } .span-8 { grid-column: span 8; }
+@media (max-width: 60rem) { .grid > * { grid-column: 1 / -1; } :root { --gutter: 20px; } .tabs { order: 3; flex-basis: 100%; } .top-right { margin-left: auto; } }
+.panel { background: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-card); padding: var(--space-lg); min-width: 0; }
+.panel > h3 { margin-bottom: var(--space-md); }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); margin-bottom: var(--space-md); }
+
+/* signature: the field record */
+.entry { border-radius: var(--radius-entry); background: var(--color-paper-2); box-shadow: 0 0 0 1px var(--color-ink), var(--shadow-lift); overflow: hidden; }
+.entry-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg); background: var(--color-ink); color: var(--color-paper-2); }
+.entry-head h3 { color: var(--color-paper-2); }
+.entry-head .num { font-size: var(--text-sm); }
+.map-wrap { position: relative; border-bottom: var(--rule-hair) solid var(--color-ink); background: var(--color-paper); }
+#map { display: block; width: 100%; height: 320px; }
+.reading { padding: var(--space-lg); }
+.reading-top { display: flex; justify-content: space-between; align-items: end; gap: var(--space-md); flex-wrap: wrap; }
+.reading-value { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--tracking-display); font-size: var(--text-3xl); line-height: 1; font-variant-numeric: tabular-nums; }
+.reading-value .unit { font-size: var(--text-lg); color: var(--color-muted); margin-left: var(--space-2xs); }
+.scale { position: relative; height: 48px; margin-top: var(--space-lg); }
+.scale-track { position: absolute; left: 0; right: 0; top: 18px; height: 14px; border: var(--rule-hair) solid var(--color-ink); border-radius: 3px; background: linear-gradient(var(--color-grid) 1px, transparent 1px) 0 0 / 6px 6px, linear-gradient(90deg, var(--color-grid) 1px, transparent 1px) 0 0 / 6px 6px, var(--color-paper-2); overflow: hidden; }
+.scale-fill { position: absolute; inset: 0; background: var(--color-water); transform-origin: left center; transform: scaleX(0); transition: transform var(--dur-short) var(--ease-out); }
+.scale-needle { position: absolute; left: 0; right: 0; top: 10px; height: 30px; pointer-events: none; transition: transform var(--dur-short) var(--ease-out); }
+.scale-needle::before { content: ""; position: absolute; left: -1px; top: 0; bottom: 0; width: 3px; background: var(--color-ink); border-radius: 2px; }
+.mark { position: absolute; top: 0; bottom: 0; width: 0; }
+.mark::before { content: ""; position: absolute; top: 14px; height: 22px; border-left: var(--rule-hair) solid var(--color-ink); }
+.mark--dry::before { border-left: 2px solid var(--color-accent); top: 10px; height: 30px; }
+.legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: var(--space-sm) 0 0; border-top: var(--rule-hair) solid var(--color-ink); }
+.legend > div { padding: var(--space-xs) var(--space-xs) 0 0; }
+.legend dt { font-size: var(--text-xs); font-weight: 500; color: var(--color-muted); }
+.legend dd { margin: 0; font-size: var(--text-md); }
+.legend-dry dt { color: var(--color-ink); }
+.legend-dry { box-shadow: inset 0 2px 0 var(--color-accent); }
+@media (max-width: 40rem) { .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ruled list */
+.ruled { border-top: var(--rule-hair) solid var(--color-ink); margin: 0; padding: 0; list-style: none; }
+.ruled > li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); padding: var(--space-sm) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+.ruled .v { font-family: var(--font-outlier); font-variant-numeric: tabular-nums; font-size: var(--text-lg); }
+.ruled .v small { font-size: var(--text-sm); color: var(--color-muted); margin-left: var(--space-2xs); }
+
+/* pump */
+.pump-state { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; margin-bottom: var(--space-xs); }
+.pump-state strong { font-family: var(--font-display); font-weight: var(--display-weight); font-size: var(--text-2xl); letter-spacing: var(--tracking-display); font-variant-numeric: tabular-nums; }
+.controls { display: flex; gap: var(--space-xs); flex-wrap: wrap; align-items: center; margin-top: var(--space-md); }
+.seg { display: inline-flex; padding: var(--space-3xs); background: var(--color-paper-3); border-radius: calc(var(--radius-pill) + 2px); }
+.seg button { min-height: 40px; padding: 0 var(--space-md); border: 0; border-radius: var(--radius-pill); background: transparent; font-weight: 500; cursor: pointer; }
+.seg button:hover { background: var(--color-paper-2); }
+.seg button.on { background: var(--color-paper-2); box-shadow: 0 0 0 1px var(--color-ink); }
+.btn { min-height: 44px; border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill); padding: 0 var(--space-md); font-weight: 500; background: var(--color-paper-2); color: var(--color-ink); cursor: pointer; box-shadow: inset 0 1px 0 var(--color-sheet), 0 1px 1px var(--color-rule); transition: background-color var(--dur-micro) var(--ease-out); }
+.btn:hover { background: var(--color-paper-3); }
+.btn:active { transform: translateY(1px); }
+.btn--primary { background: var(--color-accent); color: var(--color-accent-ink); border-color: color-mix(in oklab, var(--color-accent) 78%, var(--color-ink)); box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-sheet) 32%, transparent), inset 0 -1px 0 color-mix(in oklab, var(--color-ink) 10%, transparent); }
+.btn--primary:hover { background: color-mix(in oklab, var(--color-accent) 88%, var(--color-ink)); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn--sm { min-height: 36px; font-size: var(--text-sm); padding: 0 var(--space-sm); }
+.note { margin-top: var(--space-md); padding-top: var(--space-sm); border-top: var(--rule-hair) solid var(--color-rule); font-size: var(--text-sm); color: var(--color-muted); }
+
+/* simulator strip */
+.sim { margin-top: var(--space-xl); padding: var(--space-md) var(--space-lg); border: var(--rule-hair) dashed var(--color-grid-strong); border-radius: var(--radius-card); display: flex; gap: var(--space-xs); flex-wrap: wrap; align-items: center; }
+.sim h3 { margin-right: var(--space-sm); }
+
+/* charts */
+.chart { display: block; width: 100%; height: 220px; }
+
+/* tables */
+.sheet { background: var(--color-sheet); border-radius: 3px; box-shadow: var(--shadow-card); padding: var(--space-lg); }
+table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+thead th { text-align: left; font-weight: 500; color: var(--color-muted); padding: var(--space-xs) var(--space-xs) var(--space-xs) 0; border-bottom: var(--rule-hair) solid var(--color-ink); }
+tbody td { padding: var(--space-sm) var(--space-xs) var(--space-sm) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+tbody th { text-align: left; font-weight: 500; padding: var(--space-sm) var(--space-xs) var(--space-sm) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+tr.total td, tr.total th { border-top: 2px solid var(--color-ink); }
+.empty { padding: var(--space-lg) 0; color: var(--color-muted); }
+
+/* alerts */
+.alert { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto auto; gap: var(--space-md); align-items: baseline; padding: var(--space-sm) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+.alert b { font-weight: 500; }
+.alert.ack { opacity: .55; }
+.bars { margin-top: var(--space-md); }
+.bars div { display: grid; grid-template-columns: minmax(0,1fr) 56px; gap: var(--space-xs); align-items: center; font-size: var(--text-sm); padding: 2px 0; }
+.bars i { display:block; height: 8px; background: var(--color-water); border-radius: 2px; transform-origin: left; }
+.bars span.lbl { grid-column: 1 / -1; color: var(--color-muted); }
+a { color: var(--color-ink); }
+
+/* disease */
+.drop { display: grid; place-items: center; min-height: 220px; border: var(--rule-hair) dashed var(--color-muted); border-radius: var(--radius-card); padding: var(--space-lg); text-align: center; color: var(--color-muted); cursor: pointer; background: var(--color-paper); transition: background-color var(--dur-micro) var(--ease-out); }
+.drop:hover { background: var(--color-paper-3); }
+.drop:focus-within { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.drop img { max-width: 100%; max-height: 260px; border-radius: var(--radius-card); }
+.notebook { background: linear-gradient(var(--color-grid) 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, var(--color-grid) 1px, transparent 1px) 0 0 / 8px 8px, var(--color-paper-2); padding: var(--space-lg); min-height: 180px; }
+
+/* fields */
+.field { position: relative; margin-bottom: var(--space-sm); }
+.field label { position: absolute; left: var(--space-md); top: var(--space-xs); font-size: var(--text-xs); font-weight: 500; color: var(--color-muted); pointer-events: none; }
+.field select, .field input { width: 100%; min-height: 56px; padding: var(--space-lg) var(--space-md) var(--space-xs); border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-pill); background: var(--color-paper-2); appearance: none; }
+.field input[type="number"] { font-family: var(--font-outlier); }
+.field select:hover, .field input:hover { border-color: var(--color-ink); }
+.top-right select { min-height: 36px; border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill); background: var(--color-paper-2); padding: 0 var(--space-xs); font-size: var(--text-sm); }
+
+/* chat */
+.chat { height: 300px; overflow: auto; border-top: var(--rule-hair) solid var(--color-ink); padding: var(--space-md) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+.msg { padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-card); max-width: 80%; }
+.msg.u { background: var(--color-ink); color: var(--color-paper-2); margin-left: auto; }
+.msg.b { background: var(--color-paper); border: var(--rule-hair) solid var(--color-rule); }
+.ask { display: flex; gap: var(--space-xs); }
+.ask input { flex: 1; min-width: 0; min-height: 44px; padding: 0 var(--space-md); border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-pill); background: var(--color-paper-2); }
+code { font-family: var(--font-outlier); font-size: 0.9em; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" defer></script>
+</head>
+<body>
+<header class="bar-top">
+  <div class="container">
+    <div class="wordmark"><h1>Smart Farming</h1><span class="small muted">Group B-18</span></div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Screens"></nav>
+    <div class="top-right">
+      <span class="chip" id="conn">Simulated ESP32</span>
+      <select id="lang" aria-label="Language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+<!-- DASHBOARD -->
+<section id="v-dash" aria-labelledby="h-dash">
+  <h2 id="h-dash" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Dashboard</h2>
+  <div class="grid">
+    <article class="entry span-7" aria-labelledby="h-field">
+      <div class="entry-head"><h3 id="h-field" data-t="soil">Soil moisture</h3><span class="small"><span id="cropline"></span>, <span class="num" id="stamp">--:--</span></span></div>
+      <div class="map-wrap"><canvas id="map" role="img" aria-label="Survey map of the plot with the sensor node pinned"></canvas></div>
+      <div class="reading">
+        <div class="reading-top">
+          <div class="reading-value"><span id="soil">--</span><span class="unit">%</span></div>
+          <span class="chip chip--plain" id="soilstate">Collecting</span>
+        </div>
+        <div class="scale" aria-hidden="true">
+          <div class="scale-track"><div class="scale-fill" id="soilbar"></div></div>
+          <div class="scale-needle" id="needle"></div>
+          <div class="mark mark--wp" id="mwp"></div>
+          <div class="mark mark--dry" id="drymark"></div>
+          <div class="mark" id="mstop"></div>
+          <div class="mark mark--fc" id="mfc"></div>
+        </div>
+        <dl class="legend">
+          <div><dt>Wilting point</dt><dd class="num"><span id="wpv">--</span> %</dd></div>
+          <div class="legend-dry"><dt data-t="drylimit">Dry limit</dt><dd class="num"><span id="dryv">--</span> %</dd></div>
+          <div><dt>Pump stops</dt><dd class="num"><span id="stopv">--</span> %</dd></div>
+          <div><dt>Field capacity</dt><dd class="num"><span id="fcv">--</span> %</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <div class="span-5" style="display:grid;gap:var(--gap-columns);align-content:start">
+      <section class="panel" aria-labelledby="h-pump">
+        <div class="panel-head"><h3 id="h-pump" data-t="pump">Irrigation pump</h3><span class="chip chip--plain" id="pmode">Auto</span></div>
+        <div class="pump-state"><strong id="ptxt">Off</strong><span class="chip chip--plain" id="pdot">Idle</span></div>
+        <p class="small muted" id="pinfo"></p>
+        <div class="controls">
+          <button class="btn btn--primary" id="pon">Pump ON</button>
+          <button class="btn" id="poff">Pump OFF</button>
+          <button class="btn" id="pauto">Return to Auto</button>
+        </div>
+        <p class="note">A manual command takes priority over Auto. The pump stops itself after <span class="num" id="maxrun">--</span> min in either mode, and a sensor fault switches it off and blocks Auto.</p>
+      </section>
+      <section class="panel" aria-labelledby="h-read">
+        <h3 id="h-read">Readings</h3>
+        <ul class="ruled">
+          <li><span data-t="temp">Temperature</span><span class="v"><span id="temp">--</span><small>°C</small></span></li>
+          <li><span data-t="hum">Humidity</span><span class="v"><span id="hum">--</span><small>%</small></span></li>
+          <li><span data-t="sensor">Sensor health</span><span class="chip" id="health">OK</span></li>
+        </ul>
+        <p class="small muted" id="healthd" style="margin-top:var(--space-xs)">All readings normal</p>
+      </section>
+    </div>
+
+    <section class="panel span-12" aria-labelledby="h-live">
+      <div class="panel-head"><h3 id="h-live" data-t="live">Soil moisture, last 30 minutes</h3><span class="small muted">Shaded where the pump ran</span></div>
+      <canvas id="c1" class="chart" aria-label="Soil moisture over the last 30 minutes against the dry limit" role="img"></canvas>
+    </section>
+  </div>
+
+  <div class="sim">
+    <h3>Simulator</h3>
+    <label class="small" style="display:flex;gap:var(--space-xs);align-items:center;margin-right:var(--space-sm)"><input type="checkbox" id="simon" checked> Run a simulated ESP32 in this browser</label>
+    <button class="btn btn--sm" id="f-stuck">Stuck sensor</button>
+    <button class="btn btn--sm" id="f-range">Out of range</button>
+    <button class="btn btn--sm" id="f-off">ESP32 offline</button>
+    <button class="btn btn--sm" id="f-dry">Dry the soil</button>
+    <button class="btn btn--sm" id="f-clear">Clear faults</button>
+    <label class="small muted" for="speed" style="margin-left:auto">Speed</label>
+    <select id="speed" class="btn btn--sm"><option value="1">1x</option><option value="5" selected>5x</option><option value="20">20x</option></select>
+  </div>
+</section>
+
+<!-- HISTORY -->
+<section id="v-hist" hidden aria-labelledby="h-hist">
+  <div class="screen-head"><h2 id="h-hist">History</h2><p class="small muted">One point every 5 minutes, from <code>sensors/history</code></p></div>
+  <div class="grid">
+    <section class="panel span-12"><h3>Soil moisture</h3><canvas id="c2" class="chart" role="img" aria-label="Soil moisture history"></canvas></section>
+    <section class="panel span-6"><h3>Temperature</h3><canvas id="c3" class="chart" role="img" aria-label="Temperature history"></canvas></section>
+    <section class="panel span-6"><h3>Humidity</h3><canvas id="c4" class="chart" role="img" aria-label="Humidity history"></canvas></section>
+    <section class="sheet span-12"><h3 style="margin-bottom:var(--space-md)">Pump runs</h3>
+      <table><thead><tr><th>Started</th><th>Duration</th><th>Mode</th><th>Moisture at start</th></tr></thead><tbody id="runs"></tbody></table>
+    </section>
+  </div>
+</section>
+
+<!-- DISEASE -->
+<section id="v-dis" hidden aria-labelledby="h-dis">
+  <div class="screen-head"><h2 id="h-dis">Leaf check</h2><span class="chip chip--plain" id="mstat">Model loads on first use</span></div>
+  <div class="grid">
+    <section class="panel span-6">
+      <div class="field"><label for="dcrop">Crop</label><select id="dcrop"></select></div>
+      <label class="drop" id="drop"><input type="file" accept="image/*" id="file" style="position:absolute;opacity:0;width:1px;height:1px"><span id="dprev">Choose a leaf photo, or drop one here</span></label>
+      <div class="controls"><button class="btn btn--primary" id="analyze" disabled>Analyze</button></div>
+      <p class="note">MobileNetV2 trained on PlantVillage (23 classes: tomato, potato, maize, grape, bell pepper), runs in your browser. Test accuracy <span class="num" id="macc">--</span> on held-out PlantVillage images; field photos are not tested yet. Results below 0.70 confidence are rejected.</p>
+    </section>
+    <article class="entry span-6" id="dres">
+      <div class="entry-head"><h3>Result</h3><span class="num">--</span></div>
+      <div class="notebook"><p class="muted">Choose a photo and press Analyze.</p></div>
+    </article>
+  </div>
+</section>
+
+<!-- ALERTS -->
+<section id="v-alerts" hidden aria-labelledby="h-al">
+  <div class="screen-head"><h2 id="h-al">Alerts</h2><div class="controls" style="margin:0"><button class="btn btn--sm" id="ackall">Acknowledge all</button><button class="btn btn--sm" id="clearal">Clear all</button></div></div>
+  <section class="sheet">
+    <div id="allist"></div>
+    <p class="note">On the farm these go out from the ESP32's 4G module over WhatsApp or SMS. This list mirrors <code>alerts/</code> in Firebase.</p>
+  </section>
+</section>
+
+<!-- ASK -->
+<section id="v-ask" hidden aria-labelledby="h-ask">
+  <div class="screen-head"><h2 id="h-ask">Ask an expert</h2><span class="chip chip--plain">Answers from this app's own data</span></div>
+  <section class="panel" style="max-width:760px">
+    <div class="chat" id="chat" aria-live="polite"><div class="msg b">Ask about irrigation, the pump, sensor faults or your last leaf check. I only answer from the app's own data and never give spray doses.</div></div>
+    <div class="ask"><input id="q" aria-label="Your question" placeholder="Why did the pump start?"><button class="btn btn--primary" id="send">Send</button></div>
+  </section>
+  <section class="panel" style="max-width:760px;margin-top:var(--gap-columns)"><h3>Talk to a person</h3>
+    <ul class="ruled">
+      <li><span>Kisan Call Centre, free, 6 am to 10 pm</span><a class="num" href="tel:18001801551">1800-180-1551</a></li>
+      <li><span>Share your last leaf check on WhatsApp</span><a id="wa" href="https://wa.me/?text=Leaf%20check" target="_blank" rel="noopener">Open WhatsApp</a></li>
+    </ul>
+  </section>
+</section>
+
+<!-- SETUP -->
+<section id="v-set" hidden aria-labelledby="h-set">
+  <div class="screen-head"><h2 id="h-set">Field setup</h2></div>
+  <div class="grid">
+    <section class="panel span-5"><h3>This plot</h3>
+      <div class="field"><label for="crop">Crop</label><select id="crop"></select></div>
+      <div class="field"><label for="stage">Growth stage, set by the farmer</label><select id="stage"></select></div>
+      <div class="field"><label for="soilt">Soil type</label><select id="soilt"></select></div>
+      <div class="field"><label for="loc">Field location</label><input id="loc" placeholder="Pune, Maharashtra"></div>
+      <div class="field"><label for="area">Plot area in acres, for analysis only</label><input type="number" id="area" min="0" step="0.1" value="1"></div>
+      <div class="field"><label for="maxrunin">Longest pump run in minutes</label><input type="number" id="maxrunin" min="1" max="120" value="30"></div>
+    </section>
+    <section class="sheet span-7"><h3 style="margin-bottom:var(--space-md)">Irrigation threshold</h3>
+      <table id="calc"></table>
+      <p class="note">Dry limit = FC − p × (FC − WP), report section 6.2. The pump starts at the dry limit and stops at field capacity. In a sensitive stage p is cut by 25%. Soil values are the report's Table 6.2 defaults until the field soil is calibrated.</p>
+      <p class="note">Saved to Firebase <code>config</code>, which the ESP32 reads. Paths follow the report's Table 7.1.</p>
+    </section>
+  </div>
+</section>
+</main>
+
+<script>
+/* ---------- reference data: report tables 6.2 and 6.3 ---------- */
+const SOILS={sandy:{n:'Sandy',fc:12,wp:5},loam:{n:'Loam',fc:25,wp:12},clay:{n:'Clay or black cotton soil',fc:36,wp:22}};
+const CROPS={
+  tomato:{n:'Tomato',p:.40,stages:[['seedling','Seedling',0],['transplanting','Transplanting',1],['vegetative','Vegetative',0],['flowering','Flowering',1],['fruitset','Fruit set',1],['ripening','Ripening',0]]},
+  onion:{n:'Onion',p:.30,stages:[['establishment','Establishment',0],['vegetative','Vegetative',0],['bulb','Bulb formation',1],['maturity','Maturity',0]]},
+  maize:{n:'Maize',p:.55,stages:[['seedling','Seedling',0],['vegetative','Vegetative',0],['tasseling','Tasseling',1],['silking','Silking',1],['maturity','Maturity',0]]}};
+const I18={en:{soil:'Soil moisture',temp:'Temperature',hum:'Humidity',sensor:'Sensor health',pump:'Irrigation pump',drylimit:'Dry limit',live:'Soil moisture, last 30 minutes',tabs:['Dashboard','History','Leaf check','Alerts','Ask an expert','Field setup']},
+hi:{soil:'मिट्टी की नमी',temp:'तापमान',hum:'आर्द्रता',sensor:'सेंसर स्थिति',pump:'सिंचाई पंप',drylimit:'सूखा स्तर',live:'मिट्टी की नमी, पिछले 30 मिनट',tabs:['डैशबोर्ड','इतिहास','पत्ती जांच','अलर्ट','विशेषज्ञ से पूछें','खेत सेटअप']},
+mr:{soil:'मातीतील ओलावा',temp:'तापमान',hum:'आर्द्रता',sensor:'सेन्सर स्थिती',pump:'सिंचन पंप',drylimit:'कोरडेपणाची मर्यादा',live:'मातीतील ओलावा, गेली ३० मिनिटे',tabs:['डॅशबोर्ड','इतिहास','पान तपासणी','अलर्ट','तज्ज्ञांना विचारा','शेत सेटअप']}};
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cfg={crop:'tomato',stage:'vegetative',soil:'loam',loc:'',area:1,maxRunMin:30};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('sf-cfg2')||'{}'))}catch(e){}
+function stageOf(){const st=CROPS[cfg.crop].stages;return st.find(x=>x[0]===cfg.stage)||st[0]}
+function thresholds(){const s=SOILS[cfg.soil]||SOILS.loam,c=CROPS[cfg.crop]||CROPS.tomato,sens=!!stageOf()[2];
+  const p=+(c.p*(sens?.75:1)).toFixed(3);return{fc:s.fc,wp:s.wp,p,sens,dry:+(s.fc-p*(s.fc-s.wp)).toFixed(1),stop:s.fc}}
+
+/* ---------- simulated ESP32: same rules as report 6.2 to 6.4 ---------- */
+const CYCLE=60; // one ESP32 cycle = 60 s of simulated time
+const DataSource={
+  state:{soil:22,temp:29,hum:58,ts:Date.now(),pump:false,mode:'auto',runStart:null,faults:{stuck:false,range:false,off:false},stuckVal:null,missed:0,flat:{v:null,since:0}},
+  hist:[],runs:[],alerts:[],listeners:[],simT:0,
+  on(f){this.listeners.push(f)},
+  emit(){this.listeners.forEach(f=>f())},
+  pump(on,why){const s=this.state;if(on===s.pump)return;s.pump=on;
+    if(on){s.runStart={t:Date.now(),m:s.mode,sm:s.soil,simStart:this.simT}}
+    else if(s.runStart){this.runs.unshift({t:s.runStart.t,dur:Math.max(1,Math.round((this.simT-s.runStart.simStart)/60)),m:s.runStart.m==='auto'?'Auto':'Manual',why:why||'',sm:s.runStart.sm});s.runStart=null;Cloud.out('r',this.runs[0],20,'pump/runs')}
+    this.alert('pump',on?'Pump ON':'Pump OFF',(on?`${s.mode==='auto'?'Auto':'Manual'}, moisture ${(+s.soil).toFixed(1)}%`:`Moisture ${(+s.soil).toFixed(1)}%`)+(why?`, ${why}`:''));
+    this.emit()},
+  command(c){const s=this.state;
+    if(c==='AUTO'){s.mode='auto';if(s.pump)this.pump(false,'returned to Auto')}
+    else if(c==='ON'){s.mode='manual';if(this.fault.code!=='nodata')this.pump(true)}
+    else if(c==='OFF'){s.mode='manual';this.pump(false)}
+    this.emit()},
+  alert(type,title,message){this.alerts.unshift({type,title,message,time:Date.now(),ack:false});if(this.alerts.length>50)this.alerts.pop();Cloud.out('a',this.alerts[0],50,'alerts')},
+  tick(speed){
+    const s=this.state,T=thresholds();
+    const steps=Math.max(1,Math.round(speed*2*30/CYCLE));
+    for(let k=0;k<steps;k++)this.cycle(T);
+    this.emit()},
+  cycle(T){
+    const s=this.state;this.simT+=CYCLE;
+    s.trueSoil=(s.trueSoil??s.soil);
+    const evap=.012*(1+(s.temp-25)/20);
+    s.trueSoil=Math.max(2,Math.min(T.fc+6,s.trueSoil-evap+(s.pump&&!s.faults.stuck?0.55:0)));
+    s.temp=+(29+4*Math.sin(this.simT/5400)+(Math.random()-.5)*.3).toFixed(1);
+    s.hum=Math.round(58-8*Math.sin(this.simT/5400)+(Math.random()-.5)*2);
+    let fresh=false;
+    if(s.faults.off){s.missed++}
+    else{s.missed=0;fresh=true;
+      let v=s.trueSoil+(Math.random()-.5)*.2;
+      if(s.faults.stuck){s.stuckVal=s.stuckVal??s.soil;v=s.stuckVal}
+      if(s.faults.range)v=-3+Math.random();
+      s.soil=+v.toFixed(1);s.ts=Cloud.now()}
+    const f=this.detect(fresh);
+    if(!f.ok&&f.code!=='range'){if(s.pump)this.pump(false,'sensor fault')}
+    else if(f.ok&&s.mode==='auto'){
+      if(!s.pump&&s.soil<=T.dry){this.alert('dry','Dry soil',`Moisture ${s.soil}% reached the dry limit of ${T.dry}%.`);this.pump(true)}
+      else if(s.pump&&s.soil>=T.stop)this.pump(false,'field capacity reached')}
+    if(s.pump&&s.runStart&&(this.simT-s.runStart.simStart)/60>=cfg.maxRunMin){this.alert('fault','Maximum run time',`Pump stopped after ${cfg.maxRunMin} min.`);this.pump(false,'maximum run time')}
+    if(!this.lastH||this.simT-this.lastH>=300){this.lastH=this.simT;this.hist.push({t:this.simT,moisture:s.soil,temperature:s.temp,humidity:s.hum,pump:s.pump,ok:f.ok,timestamp:Cloud.now()});if(this.hist.length>400)this.hist.shift();Cloud.out('h',this.hist[this.hist.length-1],400,'sensors/history')}
+    this.fault=f},
+  detect(fresh){const s=this.state,was=this.fault&&this.fault.code;let code=null,msg='All readings normal';
+    // Table 6.4
+    if(s.missed>=3){code='nodata';msg='No valid reading for 3 cycles'}
+    else if(fresh&&(s.soil<0||s.soil>100)){code='range';msg=`Reading out of range (${s.soil}%), rejected`}
+    else if(s.pump){if(s.flat.v===null||Math.abs(s.soil-s.flat.v)>=.5){s.flat={v:s.soil,since:this.simT}}
+      else if(this.simT-s.flat.since>=1800){code='stuck';msg='Moisture flat for 30 min with the pump ON: sensor or pump fault'}}
+    else s.flat={v:null,since:0};
+    if(code&&was!==code)this.alert('fault','Sensor fault',msg);
+    return code?{ok:false,code,msg}:{ok:true,msg}}
+};
+DataSource.fault={ok:true,msg:'All readings normal'};
+
+/* ---------- tabs, kept in the URL hash ---------- */
+const TABS=[['dash','dashboard'],['hist','history'],['dis','leaf-check'],['alerts','alerts'],['ask','ask-expert'],['set','field-setup']];
+let cur='dash';
+function buildTabs(){const L=I18[$('lang').value].tabs;$('tabs').innerHTML=TABS.map((t,i)=>`<button class="tab" role="tab" data-v="${t[0]}" aria-selected="${t[0]===cur}" aria-controls="v-${t[0]}">${L[i]}</button>`).join('')}
+function show(v){cur=v;document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!=='v-'+v);buildTabs();render();if(v==='dash')drawMap(true)}
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const h=TABS.find(t=>t[0]===b.dataset.v)[1];if(location.hash==='#'+h)show(b.dataset.v);else location.hash=h};
+function fromHash(){const h=location.hash.slice(1);const t=TABS.find(x=>x[1]===h);show(t?t[0]:'dash')}
+window.addEventListener('hashchange',fromHash);
+$('lang').onchange=()=>{buildTabs();const L=I18[$('lang').value];document.querySelectorAll('[data-t]').forEach(e=>e.textContent=L[e.dataset.t])};
+
+/* ---------- field setup: writes config ---------- */
+function fill(sel,pairs){sel.innerHTML=pairs.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}
+fill($('crop'),Object.entries(CROPS).map(([k,v])=>[k,v.n]));fill($('soilt'),Object.entries(SOILS).map(([k,v])=>[k,v.n]));
+function fillStages(){fill($('stage'),CROPS[cfg.crop].stages.map(([k,n,sv])=>[k,n+(sv?' (sensitive)':'')]));if(!CROPS[cfg.crop].stages.some(x=>x[0]===cfg.stage))cfg.stage=CROPS[cfg.crop].stages[0][0];$('stage').value=cfg.stage}
+function fillCfgInputs(){if(!CROPS[cfg.crop])cfg.crop='tomato';if(!SOILS[cfg.soil])cfg.soil='loam';$('crop').value=cfg.crop;fillStages();$('soilt').value=cfg.soil;$('loc').value=cfg.loc||'';$('area').value=cfg.area;$('maxrunin').value=cfg.maxRunMin}
+fillCfgInputs();
+function configDoc(){const T=thresholds();return{crop:cfg.crop,stage:cfg.stage,soil:cfg.soil,fc:T.fc,wp:T.wp,p:T.p,dryLimit:T.dry,maxRunMin:cfg.maxRunMin,loc:cfg.loc||'',area:cfg.area,updatedAt:Cloud.now()}}
+function saveCfg(){cfg.crop=$('crop').value;fillStages();cfg.stage=$('stage').value;cfg.soil=$('soilt').value;cfg.loc=$('loc').value;cfg.area=+$('area').value;cfg.maxRunMin=Math.max(1,+$('maxrunin').value||30);
+  try{localStorage.setItem('sf-cfg2',JSON.stringify(cfg))}catch(e){};if(Cloud.ok)Cloud.ref('config').set(configDoc());mapBase=null;render()}
+['crop','stage','soilt','loc','area','maxrunin'].forEach(i=>$(i).onchange=saveCfg);
+
+/* ---------- commands: pump/command (report table 7.1) ---------- */
+function applyFault(k){const s=DataSource.state;
+  if(k==='stuck'){s.faults.stuck=true;s.stuckVal=null}
+  else if(k==='range')s.faults.range=true;
+  else if(k==='off')s.faults.off=true;
+  else if(k==='dry')s.trueSoil=thresholds().dry-.3;
+  else if(k==='clear'){s.faults={stuck:false,range:false,off:false};s.stuckVal=null;s.missed=0;s.flat={v:null,since:0};DataSource.fault={ok:true,msg:'All readings normal'}}}
+const Act={
+  cmd(c){if(Cloud.ok&&!Cloud.owner)Cloud.ref('pump/command').set({command:c,requestedAt:Cloud.now()});else DataSource.command(c);render()},
+  fault(k){if(Cloud.ok&&!Cloud.owner)Cloud.ref('device/simFaults').set({k,ts:Cloud.now()});else applyFault(k)}};
+// two-step confirmation on pump buttons
+function confirmBtn(id,label,cmd){const b=$(id);b.onclick=()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent=label;clearTimeout(b._t);Act.cmd(cmd)}else{b.dataset.armed=1;b.textContent='Confirm '+label.toLowerCase();b._t=setTimeout(()=>{delete b.dataset.armed;b.textContent=label},4000)}}}
+confirmBtn('pon','Pump ON','ON');confirmBtn('poff','Pump OFF','OFF');confirmBtn('pauto','Return to Auto','AUTO');
+['stuck','range','off','dry','clear'].forEach(k=>$('f-'+k).onclick=()=>Act.fault(k));
+$('clearal').onclick=()=>{DataSource.alerts=[];if(Cloud.ok)Cloud.ref('alerts').remove();render()};
+$('ackall').onclick=()=>{DataSource.alerts.forEach(a=>a.ack=true);if(Cloud.ok){const up={};DataSource.alerts.forEach(a=>{if(a.key)up[`alerts/${a.key}/ack`]=true});Cloud.ref('/').update(up)}render()};
+$('allist').onclick=e=>{const b=e.target.closest('button[data-i]');if(!b)return;const a=DataSource.alerts[+b.dataset.i];if(!a)return;a.ack=true;if(Cloud.ok&&a.key)Cloud.ref(`alerts/${a.key}/ack`).set(true);render()};
+
+/* ---------- Firebase: the meeting point for the ESP32 and every open app ---------- */
+const FB={apiKey:"AIzaSyAxRyRRtE_yOjZwiE1h_g_R7CIfpfrz1gg",authDomain:"smart-farming-app-49954.firebaseapp.com",databaseURL:"https://smart-farming-app-49954-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"smart-farming-app-49954",storageBucket:"smart-farming-app-49954.firebasestorage.app",messagingSenderId:"359391759402",appId:"1:359391759402:web:f350519c40068711f50753"};
+const timeout=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]);
+const Cloud={ok:false,owner:false,me:Math.random().toString(36).slice(2,10),dev:{},offset:0,seq:{h:0,a:0,r:0,d:0},q:{},
+  now(){return Date.now()+this.offset},
+  ref(p){return this.db.ref(p)},
+  out(k,obj,ring,path){if(!this.ok||!this.owner)return;obj.seq=this.seq[k]++;obj.key=String(obj.seq%ring);this.q[`${path}/${obj.key}`]=obj},
+  async init(){
+    if(!window.firebase)return false;
+    try{firebase.initializeApp(FB);
+      await timeout(firebase.auth().signInAnonymously(),8000);
+      this.db=firebase.database();
+      await timeout(this.ref('device').once('value').then(s=>{this.dev=s.val()||{};if(this.dev.seq)this.seq=Object.assign(this.seq,this.dev.seq)}),8000);
+      this.ok=true;this.listen();return true}
+    catch(e){console.warn('Firebase not reachable, running the offline demo.',e);return false}},
+  listen(){const S=DataSource;
+    this.ref('.info/serverTimeOffset').on('value',s=>this.offset=s.val()||0);
+    this.ref('device').on('value',s=>{this.dev=s.val()||{};if(!this.owner){if(this.dev.seq)this.seq=Object.assign(this.seq,this.dev.seq);if(this.dev.fault)S.fault=this.dev.fault;if(this.dev.simT)S.simT=this.dev.simT}render()});
+    this.ref('sensors/latest').on('value',s=>{const v=s.val();if(this.owner||!v)return;Object.assign(S.state,{soil:v.moisture,temp:v.temperature,hum:v.humidity,ts:v.timestamp});render()});
+    this.ref('pump/status').on('value',s=>{const v=s.val();if(this.owner||!v)return;Object.assign(S.state,{pump:v.state==='ON',mode:v.mode==='MANUAL'?'manual':'auto',runMin:v.runMin||0});render()});
+    const ring=(p,key,desc)=>this.ref(p).on('value',s=>{if(this.owner)return;S[key]=Object.values(s.val()||{}).sort((a,b)=>desc?b.seq-a.seq:a.seq-b.seq);render()});
+    ring('sensors/history','hist',false);ring('pump/runs','runs',true);
+    this.ref('alerts').on('value',s=>{S.alerts=Object.entries(s.val()||{}).map(([k,x])=>Object.assign(x,{key:k})).sort((x,y)=>y.time-x.time);render()});
+    this.ref('config').on('value',s=>{const v=s.val();if(!v)return;Object.assign(cfg,{crop:v.crop,stage:v.stage,soil:v.soil,maxRunMin:v.maxRunMin||30,loc:v.loc||'',area:v.area||1});fillCfgInputs();mapBase=null;render()});
+    this.ref('pump/command').on('value',s=>{const c=s.val();if(!c||!this.owner)return;this.ref('pump/command').remove();S.command(c.command)});
+    this.ref('device/simFaults').on('value',s=>{const c=s.val();if(!c||!this.owner)return;this.ref('device/simFaults').remove();applyFault(c.k)});
+  },
+  step(speed){const d=this.dev,now=this.now(),S=DataSource;
+    const free=!d.owner||d.owner===this.me||now-(d.heartbeat||0)>10000;
+    const was=this.owner;this.owner=$('simon').checked&&d.source!=='esp32'&&free;
+    if(this.owner&&!was){
+      S.state.trueSoil=S.state.soil;
+      if(!S.hist.length){for(let i=0;i<8;i++)S.tick(8)}
+      if(!this.dev.owner)this.ref('config').once('value',x=>{if(!x.exists())this.ref('config').set(configDoc())});
+      ['pump/command','device/simFaults'].forEach(p=>this.ref(p).once('value',x=>{const c=x.val();if(!c)return;this.ref(p).remove();p==='pump/command'?S.command(c.command):applyFault(c.k)}));
+    }
+    if(this.owner){S.tick(speed);this.publish()}
+    else{if(now-(d.heartbeat||0)>3*CYCLE*1000/((+$('speed').value)||1)&&now-(d.heartbeat||0)>15000)S.fault={ok:false,code:'nodata',msg:'No heartbeat from the ESP32'};render()}},
+  publish(){const S=DataSource,s=S.state,now=this.now(),up=this.q;this.q={};
+    if(!s.faults.off)up['sensors/latest']={moisture:s.soil,temperature:s.temp,humidity:s.hum,timestamp:now};
+    up['pump/status']={state:s.pump?'ON':'OFF',mode:s.mode==='auto'?'AUTO':'MANUAL',startTime:s.pump&&s.runStart?s.runStart.t:null,runMin:s.pump&&s.runStart?Math.round((S.simT-s.runStart.simStart)/60):0};
+    Object.assign(up,{'device/owner':this.me,'device/heartbeat':now,'device/source':'simulator','device/firmware':'web-sim-1.0','device/rssi':null,'device/simT':S.simT,'device/fault':S.fault,'device/seq':this.seq});
+    this.ref('/').update(up).catch(e=>console.warn('Firebase write failed',e))}
+};
+
+/* ---------- the survey map ---------- */
+let mapBase=null,mapW=0;
+function rng(seed){return()=>((seed=Math.imul(seed^seed>>>15,seed|1)^seed+Math.imul(seed^seed>>>7,seed|61),((seed^seed>>>14)>>>0)/4294967296))}
+function height(x,y){return Math.sin(x*.011+1.3)*Math.cos(y*.013-.4)*1.1+Math.sin((x+y)*.007+2)*.9+Math.cos(x*.004-y*.009)*1.4+Math.sin(x*.023+y*.017)*.25}
+function holding(w,h){return[[.24*w,.2*h],[.72*w,.14*h],[.8*w,.7*h],[.3*w,.82*h]]}
+function buildMap(w,h){
+  const dpr=devicePixelRatio||1,cv=document.createElement('canvas');cv.width=w*dpr;cv.height=h*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);
+  c.fillStyle=css('--color-paper');c.fillRect(0,0,w,h);
+  const r=rng(7);c.fillStyle=css('--color-paper-3');for(let i=0;i<w*h/90;i++){c.globalAlpha=.35*r();c.fillRect(r()*w,r()*h,1,1)}c.globalAlpha=1;
+  // contours by marching squares
+  const st=6,nx=Math.ceil(w/st)+1,ny=Math.ceil(h/st)+1,g=[];
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)g[j*nx+i]=height(i*st,j*st);
+  const lv=[];for(let v=-3;v<=3;v+=.25)lv.push(v);
+  lv.forEach((L,k)=>{c.strokeStyle=css('--color-contour');c.lineWidth=k%5===0?1.4:.7;c.globalAlpha=k%5===0?.9:.55;c.beginPath();
+    for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){
+      const a=g[j*nx+i],b=g[j*nx+i+1],d=g[(j+1)*nx+i],e=g[(j+1)*nx+i+1],x=i*st,y=j*st,p=[];
+      const t=(u,v)=>(L-u)/(v-u);
+      if((a<L)!==(b<L))p.push([x+st*t(a,b),y]);
+      if((b<L)!==(e<L))p.push([x+st,y+st*t(b,e)]);
+      if((d<L)!==(e<L))p.push([x+st*t(d,e),y+st]);
+      if((a<L)!==(d<L))p.push([x,y+st*t(a,d)]);
+      for(let q=0;q+1<p.length;q+=2){c.moveTo(p[q][0],p[q][1]);c.lineTo(p[q+1][0],p[q+1][1])}
+    }c.stroke()});
+  c.globalAlpha=1;
+  // stream
+  c.strokeStyle=css('--color-water');c.lineWidth=3;c.beginPath();c.moveTo(.02*w,h);c.bezierCurveTo(.18*w,.7*h,.06*w,.4*h,.16*w,0);c.stroke();
+  // lane with a gate
+  c.strokeStyle=css('--color-ink');c.lineWidth=1;[.9*w,.94*w].forEach(x=>{c.beginPath();c.moveTo(x,0);c.lineTo(x-.04*w,h);c.stroke()});
+  // hedges, dotted
+  c.fillStyle=css('--color-hedge');const H=holding(w,h);
+  [[H[0],[.24*w,0]],[H[3],[.3*w,h]],[H[1],[.88*w,.1*h]]].forEach(([a,b])=>{const n=Math.hypot(b[0]-a[0],b[1]-a[1])/5;for(let i=0;i<n;i++){c.beginPath();c.arc(a[0]+(b[0]-a[0])*i/n,a[1]+(b[1]-a[1])*i/n,1.3,0,7);c.fill()}});
+  // shed, hatched
+  c.save();c.translate(.84*w,.78*h);c.strokeStyle=css('--color-ink');c.lineWidth=1;c.strokeRect(0,0,26,18);c.beginPath();c.rect(0,0,26,18);c.clip();c.globalAlpha=.5;c.beginPath();for(let i=-18;i<26;i+=4){c.moveTo(i,18);c.lineTo(i+18,0)}c.stroke();c.restore();
+  // fold creases
+  c.globalAlpha=.5;c.strokeStyle=css('--color-paper-2');c.beginPath();c.moveTo(w/3,0);c.lineTo(w/3,h);c.moveTo(0,h/2);c.lineTo(w,h/2);c.stroke();
+  c.strokeStyle=css('--color-grid-strong');c.beginPath();c.moveTo(w/3+1,0);c.lineTo(w/3+1,h);c.moveTo(0,h/2+1);c.lineTo(w,h/2+1);c.stroke();c.globalAlpha=1;
+  // the holding, edged in tangerine
+  c.strokeStyle=css('--color-accent');c.lineWidth=3;c.beginPath();H.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.closePath();c.stroke();
+  // plot name along its edge
+  c.save();c.translate(H[0][0]+10,H[0][1]+20);c.rotate(Math.atan2(H[1][1]-H[0][1],H[1][0]-H[0][0]));c.fillStyle=css('--color-ink-2');c.font='500 13px "Red Hat Text", sans-serif';
+  c.fillText((cfg.loc?cfg.loc+', ':'')+CROPS[cfg.crop].n+' plot, '+cfg.area+' acre',0,0);c.restore();
+  return cv}
+function drawMap(force){
+  const cv=$('map');if(!cv||$('v-dash').hidden)return;const w=cv.clientWidth,h=cv.clientHeight;if(!w)return;
+  if(!mapBase||force||mapW!==w){mapBase=buildMap(w,h);mapW=w}
+  const dpr=devicePixelRatio||1;cv.width=w*dpr;cv.height=h*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);c.drawImage(mapBase,0,0,w,h);
+  const s=DataSource.state,f=DataSource.fault,px=.52*w,py=.5*h;
+  if(s.pump){c.strokeStyle=css('--color-water');c.lineWidth=2;c.setLineDash([6,5]);c.beginPath();c.moveTo(.9*w,.62*h);c.lineTo(.78*w,.6*h);c.lineTo(px,py);c.stroke();c.setLineDash([])}
+  c.beginPath();c.arc(px,py,8,0,7);c.fillStyle=f.ok?css('--color-accent'):css('--color-error');c.fill();c.lineWidth=2;c.strokeStyle=css('--color-ink');c.stroke();
+  const txt=`Node 1   ${f.ok?(+s.soil).toFixed(1)+' %':'fault'}   ${fmtT(s.ts)}`;
+  c.font='500 12px "Red Hat Mono", monospace';const tw=c.measureText(txt).width+16;
+  const tx=px+14+tw>w-4?px-14-tw:px+14;c.fillStyle=css('--color-ink');c.fillRect(tx,py-12,tw,24);c.fillStyle=css('--color-paper-2');c.fillText(txt,tx+8,py+4)}
+
+/* ---------- charts ---------- */
+function draw(cv,key,colorVar,opts={}){
+  const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*dpr;cv.height=h*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);
+  const mute=css('--color-muted'),line=css('--color-rule');
+  let d=DataSource.hist;if(opts.last)d=d.slice(-opts.last);
+  c.font='12px "Red Hat Mono", monospace';
+  if(d.length<2){c.fillStyle=mute;c.fillText('Collecting readings',8,24);return}
+  const vals=d.map(x=>x[key]);let mn=Math.min(...vals),mx=Math.max(...vals);if(opts.ref!=null){mn=Math.min(mn,opts.ref);mx=Math.max(mx,opts.ref)}const pad=(mx-mn)*.15||1;mn-=pad;mx+=pad;
+  const L=40,R=8,Tp=10,B=22,X=i=>L+(w-L-R)*i/(d.length-1),Y=v=>Tp+(h-Tp-B)*(1-(v-mn)/(mx-mn));
+  c.strokeStyle=line;c.fillStyle=mute;c.lineWidth=1;
+  for(let i=0;i<=3;i++){const v=mn+(mx-mn)*i/3,y=Y(v);c.beginPath();c.moveTo(L,y);c.lineTo(w-R,y);c.stroke();c.fillText(v.toFixed(0),4,y+4)}
+  if(opts.pump){c.fillStyle=css('--color-water');c.globalAlpha=.14;d.forEach((p,i)=>{if(p.pump&&i<d.length-1)c.fillRect(X(i),Tp,X(i+1)-X(i),h-Tp-B)});c.globalAlpha=1}
+  if(opts.ref!=null){c.strokeStyle=css('--color-accent');c.lineWidth=2;c.setLineDash([6,4]);c.beginPath();c.moveTo(L,Y(opts.ref));c.lineTo(w-R,Y(opts.ref));c.stroke();c.setLineDash([]);c.fillStyle=css('--color-ink-2');c.font='500 12px "Red Hat Text", sans-serif';c.fillText('Dry limit '+opts.ref+' %',L+6,Y(opts.ref)-6)}
+  c.strokeStyle=css(colorVar);c.lineWidth=2;c.beginPath();d.forEach((p,i)=>i?c.lineTo(X(i),Y(p[key])):c.moveTo(X(i),Y(p[key])));c.stroke();
+  c.fillStyle=mute;c.font='12px "Red Hat Text", sans-serif';c.fillText('Earlier',L,h-4);c.fillText('Now',w-R-26,h-4)}
+
+/* ---------- render ---------- */
+const fmtT=t=>t?new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'--:--';
+let scaleMax=50;const pos=v=>Math.max(0,Math.min(100,v/scaleMax*100));
+const ALERT_LABEL={dry:['Dry soil','chip--warn'],pump:['Pump','chip--plain'],fault:['Fault','chip--bad'],disease:['Disease','chip--warn']};
+function render(){
+  const s=DataSource.state,T=thresholds(),f=DataSource.fault,st=stageOf();scaleMax=Math.ceil((T.fc+8)/5)*5;
+  $('cropline').textContent=`${CROPS[cfg.crop].n}, ${st[1].toLowerCase()}${st[2]?' (sensitive)':''}, ${SOILS[cfg.soil].n.toLowerCase()} soil`;
+  $('soil').textContent=(+s.soil).toFixed(1);$('temp').textContent=s.temp;$('hum').textContent=s.hum;$('stamp').textContent=fmtT(s.ts);
+  $('soilbar').style.transform=`scaleX(${pos(s.soil)/100})`;$('needle').style.transform=`translateX(${pos(s.soil)}%)`;
+  $('mwp').style.left=pos(T.wp)+'%';$('drymark').style.left=pos(T.dry)+'%';$('mstop').style.left=pos(T.stop)+'%';$('mfc').style.left=pos(T.fc)+'%';
+  $('dryv').textContent=T.dry;$('fcv').textContent=T.fc;$('wpv').textContent=T.wp;$('stopv').textContent=T.stop;$('maxrun').textContent=cfg.maxRunMin;
+  const ss=$('soilstate');
+  if(!f.ok){ss.textContent='Not trusted';ss.className='chip chip--bad'}
+  else if(s.soil<=T.dry){ss.textContent='At dry limit';ss.className='chip chip--warn'}
+  else if(s.soil>=T.fc){ss.textContent='At field capacity';ss.className='chip'}
+  else{ss.textContent='In range';ss.className='chip'}
+  $('health').textContent=f.ok?'OK':'Fault';$('health').className=f.ok?'chip':'chip chip--bad';$('healthd').textContent=f.msg;
+  const c=$('conn');
+  if(!Cloud.ok){c.textContent=booted?'Offline demo':'Connecting';c.className='chip chip--plain'}
+  else if(f.code==='nodata'){c.textContent='ESP32 offline';c.className='chip chip--bad'}
+  else if(!f.ok){c.textContent='Live, sensor fault';c.className='chip chip--warn'}
+  else{c.textContent=Cloud.owner?'Live, simulating here':(Cloud.dev.source==='esp32'?'Live, ESP32':'Live, simulated ESP32');c.className='chip'}
+  $('ptxt').textContent=s.pump?'Running':'Off';
+  const run=s.pump?(s.runStart?Math.round((DataSource.simT-s.runStart.simStart)/60):(s.runMin||0)):0;
+  $('pdot').textContent=s.pump?run+' min':'Idle';$('pdot').className=s.pump?'chip chip--on num':'chip chip--plain';
+  $('pmode').textContent=s.mode==='auto'?'Auto':'Manual';$('pmode').className=s.mode==='auto'?'chip chip--plain':'chip chip--warn';
+  $('pinfo').textContent=s.mode==='auto'?(f.ok?`Starts at ${T.dry}%, stops at field capacity (${T.fc}%).`:'Auto is blocked while a sensor fault is active.'):'Manual: the pump follows your ON and OFF. Return to Auto when done.';
+  $('pon').disabled=s.pump||f.code==='nodata';$('poff').disabled=!s.pump&&s.mode==='manual';$('pauto').disabled=s.mode==='auto';
+  const unack=DataSource.alerts.filter(a=>!a.ack).length;const at=[...document.querySelectorAll('.tab')].find(b=>b.dataset.v==='alerts');if(at)at.textContent=I18[$('lang').value].tabs[3]+(unack?` (${unack})`:'');
+  if(cur==='dash'){draw($('c1'),'moisture','--color-water',{ref:T.dry,pump:true,last:6});drawMap()}
+  if(cur==='hist'){draw($('c2'),'moisture','--color-water',{ref:T.dry,pump:true});draw($('c3'),'temperature','--color-contour');draw($('c4'),'humidity','--color-green');
+    $('runs').innerHTML=DataSource.runs.length?DataSource.runs.slice(0,10).map(r=>`<tr><td class="num">${fmtT(r.t)}</td><td class="num">${r.dur} min</td><td>${r.m}${r.why?', '+r.why:''}</td><td class="num">${(+r.sm).toFixed(1)} %</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No pump runs yet. They appear here when the pump starts, in either mode.</td></tr>'}
+  if(cur==='alerts')$('allist').innerHTML=DataSource.alerts.length?DataSource.alerts.map((a,i)=>{const L=ALERT_LABEL[a.type]||['Info','chip--plain'];return `<div class="alert${a.ack?' ack':''}"><span class="chip ${L[1]}">${L[0]}</span><div><b>${a.title}</b><p class="small muted">${a.message}</p></div><span class="num small muted">${fmtT(a.time)}</span>${a.ack?'<span class="small muted">Seen</span>':`<button class="btn btn--sm" data-i="${i}">Acknowledge</button>`}</div>`}).join(''):'<p class="empty">No alerts. Dry soil, pump changes, sensor faults and disease results show up here.</p>';
+  if(cur==='set')$('calc').innerHTML=`<tbody><tr><th>Crop</th><td>${CROPS[cfg.crop].n}, p <span class="num">${CROPS[cfg.crop].p}</span></td></tr><tr><th>Growth stage</th><td>${st[1]}${st[2]?', sensitive: p × 0.75':''}</td></tr><tr><th>Depletion p used</th><td class="num">${T.p}</td></tr><tr><th>Field capacity (FC)</th><td class="num">${T.fc} %</td></tr><tr><th>Wilting point (WP)</th><td class="num">${T.wp} %</td></tr><tr class="total"><th>Dry limit, pump starts</th><td class="num"><b>${T.dry} %</b></td></tr><tr><th>Pump stops</th><td class="num"><b>${T.stop} %</b> (FC)</td></tr><tr><th>Maximum run</th><td class="num">${cfg.maxRunMin} min</td></tr><tr><th>Plot area</th><td class="num">${cfg.area} acre, records only</td></tr></tbody>`;
+}
+DataSource.on(render);
+
+/* ---------- leaf check: MobileNetV2 in the browser ---------- */
+const DIS={ // general guidance only; no doses (report 7.4: never invent treatments or doses)
+ 'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot':['Maize','Grey leaf spot','Fungal. Rotate crops, bury or remove infected residue, and choose tolerant hybrids next season.'],
+ 'Corn_(maize)___Common_rust_':['Maize','Common rust','Fungal. Usually managed with resistant hybrids; spraying is only worth it when infection is heavy early in the season.'],
+ 'Corn_(maize)___Northern_Leaf_Blight':['Maize','Northern leaf blight','Fungal. Rotate crops, manage residue and use resistant hybrids.'],
+ 'Corn_(maize)___healthy':['Maize','Healthy',''],
+ 'Grape___Black_rot':['Grape','Black rot','Fungal. Remove dried, shrivelled berries and infected leaves, and prune for airflow.'],
+ 'Grape___Esca_(Black_Measles)':['Grape','Esca (black measles)','A trunk disease. Cut out infected wood and protect large pruning wounds.'],
+ 'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)':['Grape','Leaf blight (Isariopsis leaf spot)','Fungal. Remove infected leaves and keep the canopy open.'],
+ 'Grape___healthy':['Grape','Healthy',''],
+ 'Pepper,_bell___Bacterial_spot':['Bell pepper','Bacterial spot','Bacterial. Use clean seed and seedlings, avoid overhead watering, and do not work among wet plants.'],
+ 'Pepper,_bell___healthy':['Bell pepper','Healthy',''],
+ 'Potato___Early_blight':['Potato','Early blight','Fungal. Remove infected lower leaves, rotate crops and keep the crop well fed.'],
+ 'Potato___Late_blight':['Potato','Late blight','Spreads fast in cool, wet weather. Remove and destroy infected plants and get advice quickly.'],
+ 'Potato___healthy':['Potato','Healthy',''],
+ 'Tomato___Bacterial_spot':['Tomato','Bacterial spot','Bacterial. Use clean seedlings, avoid overhead watering and remove badly infected leaves.'],
+ 'Tomato___Early_blight':['Tomato','Early blight','Fungal. Remove infected lower leaves, mulch the soil and rotate crops.'],
+ 'Tomato___Late_blight':['Tomato','Late blight','Spreads fast in cool, wet weather. Remove and destroy infected plants and get advice quickly.'],
+ 'Tomato___Leaf_Mold':['Tomato','Leaf mould','Fungal, favoured by high humidity. Improve ventilation and avoid wetting the leaves.'],
+ 'Tomato___Septoria_leaf_spot':['Tomato','Septoria leaf spot','Fungal. Remove infected leaves, avoid wetting the leaves and rotate crops.'],
+ 'Tomato___Spider_mites Two-spotted_spider_mite':['Tomato','Spider mites','A pest, not a disease. Check under the leaves; a strong water spray and natural enemies help.'],
+ 'Tomato___Target_Spot':['Tomato','Target spot','Fungal. Remove crop debris and infected leaves and keep the canopy open.'],
+ 'Tomato___Tomato_Yellow_Leaf_Curl_Virus':['Tomato','Yellow leaf curl virus','Spread by whiteflies; no cure. Remove infected plants, control whiteflies with yellow sticky traps and use resistant varieties.'],
+ 'Tomato___Tomato_mosaic_virus':['Tomato','Mosaic virus','Spread by touch and tools; no cure. Remove infected plants and wash hands and tools.'],
+ 'Tomato___healthy':['Tomato','Healthy','']};
+const LEAF_CROPS=['Tomato','Potato','Maize','Grape','Bell pepper'];
+fill($('dcrop'),LEAF_CROPS.map(c=>[c,c]));
+let leafModel=null,leafLabels=null,lastScan=null;
+async function loadLeafModel(){
+  if(leafModel)return leafModel;
+  if(!window.tf)throw new Error('TensorFlow.js did not load');
+  $('mstat').textContent='Loading model';
+  leafLabels=await (await fetch('model/labels.json')).json();
+  const meta=await (await fetch('model/metrics.json')).json().catch(()=>null);
+  if(meta)$('macc').textContent=(meta.test_accuracy*100).toFixed(1)+' %';
+  const mj=await (await fetch('model/model.json')).json(),wj=await (await fetch('model/weights.json')).json();
+  const bin=Uint8Array.from(atob(wj.b64),ch=>ch.charCodeAt(0)).buffer;
+  leafModel=await tf.loadLayersModel(tf.io.fromMemory({modelTopology:mj.modelTopology,weightSpecs:mj.weightsManifest.flatMap(g=>g.weights),weightData:bin}));
+  $('mstat').textContent='Model ready';$('mstat').className='chip';return leafModel}
+async function classifyLeaf(imgEl,crop){
+  const m=await loadLeafModel();
+  const probs=tf.tidy(()=>{const x=tf.image.resizeBilinear(tf.browser.fromPixels(imgEl),[224,224]).expandDims(0);return m.predict(x).dataSync()});
+  // keep only the chosen crop's classes, then renormalise
+  const idx=leafLabels.map((l,i)=>[l,i]).filter(([l])=>DIS[l][0]===crop);
+  const sum=idx.reduce((a,[,i])=>a+probs[i],0)||1;
+  return idx.map(([l,i])=>({label:l,p:probs[i]/sum,raw:probs[i]})).sort((a,b)=>b.p-a.p)}
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('dprev').innerHTML=`<img id="leafimg" src="${r.result}" alt="Leaf photo to check">`;$('analyze').disabled=false};r.readAsDataURL(f);loadLeafModel().catch(()=>{})};
+const drop=$('drop');drop.ondragover=e=>e.preventDefault();drop.ondrop=e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$('file').files=dt.files;$('file').onchange({target:$('file')})}};
+$('analyze').onclick=async()=>{
+  const b=$('analyze');b.disabled=true;b.textContent='Checking';
+  try{
+    const img=$('leafimg');if(!img.complete)await new Promise(r=>img.onload=r);
+    const res=await classifyLeaf(img,$('dcrop').value),top=res[0],d=DIS[top.label],ok=top.p>=.70;
+    lastScan={crop:d[0],disease:d[1],confidence:+top.p.toFixed(3),accepted:ok,time:Date.now()};
+    const bars=res.slice(0,3).map(r=>`<div><span class="lbl">${DIS[r.label][1]}</span><i style="transform:scaleX(${r.p.toFixed(3)})"></i><span class="num">${(r.p*100).toFixed(0)} %</span></div>`).join('');
+    $('dres').innerHTML=`<div class="entry-head"><h3>${ok?d[1]:'Not sure'}</h3><span class="num">${fmtT(Date.now())}</span></div><div class="notebook">
+      ${ok?`<p><span class="chip ${d[1]==='Healthy'?'':'chip--warn'}">${d[0]}</span> <span class="num">${(top.p*100).toFixed(1)} %</span> confidence</p>
+      ${d[2]?`<p style="margin-top:var(--space-sm)">${d[2]}</p><p class="small muted" style="margin-top:var(--space-sm)">Before any spray, ask your KVK or the Kisan Call Centre (1800-180-1551) which product and dose to use.</p>`:'<p style="margin-top:var(--space-sm)">No disease found on this leaf.</p>'}`
+      :`<p>Confidence is below 0.70, so no result is given. Retake the photo: one leaf, filling the frame, in daylight, on a plain background.</p>`}
+      <div class="bars">${bars}</div>
+      ${ok&&d[1]!=='Healthy'?'<div class="controls"><a class="btn" href="#ask-expert" style="display:inline-flex;align-items:center;text-decoration:none">Ask an expert</a></div>':''}</div>`;
+    $('wa').href='https://wa.me/?text='+encodeURIComponent(ok?`Leaf check: ${d[0]}, ${d[1]} (${(top.p*100).toFixed(0)}% confidence). Please advise.`:'Leaf check was not sure. Please advise.');
+    if(Cloud.ok){Cloud.ref('disease').push({class:top.label,crop:d[0],name:d[1],confidence:lastScan.confidence,accepted:ok,time:Cloud.now()});
+      if(ok&&d[1]!=='Healthy'){const a={type:'disease',title:'Disease detected',message:`${d[0]}: ${d[1]}, ${(top.p*100).toFixed(0)}% confidence`,time:Cloud.now(),ack:false};
+        Cloud.ref('alerts').push(a)}}
+    else if(ok&&d[1]!=='Healthy'){DataSource.alerts.unshift({type:'disease',title:'Disease detected',message:`${d[0]}: ${d[1]}, ${(top.p*100).toFixed(0)}% confidence`,time:Date.now(),ack:false})}
+  }catch(err){console.warn(err);$('dres').innerHTML=`<div class="entry-head"><h3>Could not check</h3><span class="num">--</span></div><div class="notebook"><p>The model could not load (${err.message}). Check your connection and try again.</p></div>`;$('mstat').textContent='Model not loaded';$('mstat').className='chip chip--bad'}
+  b.disabled=false;b.textContent='Analyze'};
+
+/* ---------- ask an expert: answers only from the app's own data ---------- */
+function answer(q){q=q.toLowerCase();const s=DataSource.state,T=thresholds(),f=DataSource.fault;
+  if(/dose|how much.*(spray|pesticide|fungicide)|spray|pesticide|fungicide|chemical/.test(q))return 'I do not give products or doses. Call the Kisan Call Centre on 1800-180-1551 or your KVK, and share your leaf check with them.';
+  if(/why.*pump|pump.*(start|on|run)/.test(q))return s.pump?`The pump is running in ${s.mode==='auto'?'Auto':'Manual'} mode. In Auto it starts at the dry limit (${T.dry}%) and stops at field capacity (${T.fc}%).`:`The pump is off. In Auto it starts when moisture reaches ${T.dry}%; the reading now is ${s.soil}%.`;
+  if(/dry limit|threshold|when.*water|moist|soil/.test(q))return `Soil moisture is ${s.soil}%. For ${CROPS[cfg.crop].n} (${stageOf()[1].toLowerCase()}) in ${SOILS[cfg.soil].n.toLowerCase()} soil, p is ${T.p}, so the dry limit is ${T.fc} − ${T.p} × (${T.fc} − ${T.wp}) = ${T.dry}%.`;
+  if(/fault|sensor|error|offline/.test(q))return `Faults: no reading for 3 cycles, a reading outside 0 to 100%, or moisture flat for 30 min with the pump on. A fault switches the pump off and blocks Auto. Now: ${f.msg}.`;
+  if(/disease|leaf|spot|blight|virus|last scan/.test(q))return lastScan?(lastScan.accepted?`Your last leaf check found ${lastScan.disease} on ${lastScan.crop} at ${(lastScan.confidence*100).toFixed(0)}% confidence. Confirm with your KVK before treating.`:'Your last leaf check was not confident enough. Retake the photo in daylight with one leaf filling the frame.'):'Open Leaf check and upload a photo first.';
+  if(/temp|humid|weather/.test(q))return `Temperature ${s.temp} °C, humidity ${s.hum}%.`;
+  return 'I can explain the pump, the dry limit, sensor faults and your last leaf check. For anything else, call the Kisan Call Centre on 1800-180-1551.'}
+function send(){const v=$('q').value.trim();if(!v)return;$('q').value='';const ch=$('chat');const u=document.createElement('div');u.className='msg u';u.textContent=v;ch.appendChild(u);const b=document.createElement('div');b.className='msg b';b.textContent=answer(v);ch.appendChild(b);ch.scrollTop=ch.scrollHeight}
+$('send').onclick=send;$('q').onkeydown=e=>{if(e.key==='Enter')send()};
+
+/* ---------- boot ---------- */
+let booted=false;
+window.addEventListener('resize',()=>{mapBase=null;render()});
+fromHash();
+if(document.fonts)document.fonts.ready.then(()=>{mapBase=null;render()});
+fetch('model/metrics.json').then(r=>r.json()).then(m=>$('macc').textContent=(m.test_accuracy*100).toFixed(1)+' %').catch(()=>{});
+(async()=>{
+  const live=await Cloud.init();booted=true;
+  if(live){Cloud.step(+$('speed').value);setInterval(()=>Cloud.step(+$('speed').value),2000)}
+  else{for(let i=0;i<8;i++){DataSource.state.trueSoil=(DataSource.state.trueSoil??22);DataSource.tick(8)}setInterval(()=>DataSource.tick(+$('speed').value),2000)}
+  render()})();
+</script>
+</body>
+</html>

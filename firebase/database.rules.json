@@ -1,0 +1,11 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    "sensors": { ".write": "auth != null" },
+    "pump": { ".write": "auth != null" },
+    "config": { ".write": "auth != null" },
+    "alerts": { ".write": "auth != null", ".indexOn": ["time"] },
+    "disease": { ".write": "auth != null" },
+    "device": { ".write": "auth != null" }
+  }
+}
