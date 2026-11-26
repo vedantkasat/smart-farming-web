@@ -10,7 +10,9 @@ The Stage-I report is the source of truth. When code and report disagree, follow
 
 - `index.html`: the whole web app (HTML, CSS, JS in one file). No build step. Live on GitHub Pages at https://vedantkasat.github.io/smart-farming-web/ (deploys from `main`, root).
 - `model/`: leaf disease model for TensorFlow.js. `model.json` is the topology. `weights.json` holds base64 of the float16 weights, because the claude.ai artifact host can't serve `.bin`. `labels.json` lists 23 classes; `metrics.json` has the measured results.
-- `training/`: scripts that trained and converted the model (MobileNetV2 frozen + softmax head, PlantVillage colour, ≤320 images per class, 70/15/15 split, seed 42).
+- `flutter_app/`: the Flutter app (Android + web), a full port of `index.html`. `assets/model` links to `model/`. Firebase sync and the simulator are in `lib/data/farm.dart`.
+- `model/leaf.tflite`: the same model for Android (made by `training/tfjs_to_tflite.py`).
+- `training/`: scripts that trained and converted the model (MobileNetV2 frozen + softmax head, PlantVillage colour, ≤320 images per class, 70/15/15 split, seed 42). `train_local.py` retrains on a laptop and exports for both apps (see `training/README.md`).
 - `firebase/database.rules.json`: Realtime Database rules (already published).
 - The design follows the "Hallmark" Furrow theme (warm paper, ink rules, one tangerine accent, Red Hat fonts). Keep that look.
 
@@ -53,7 +55,7 @@ Until the hardware exists, one open copy of the app acts as a **simulated ESP32*
 
 ## Open work
 
-1. The report says the app is **Flutter** (Flutter + Firebase + on-device TFLite). The current web app is plain HTML/JS. Decide whether to rebuild in Flutter (web + Android from one codebase), reusing the Firebase contract and the rules above.
+1. Flutter app built in `flutter_app/` (Android + web). Still to do: register the Android app in Firebase and set `androidAppId` in `lib/firebase_options.dart`; decide whether GitHub Pages should serve the Flutter web build instead of `index.html`. Keep both apps in step until then.
 2. ESP32 firmware (when hardware is finalised): follow the data contract, set `device.source = "esp32"`, use NTP time, enforce max run in manual mode too.
 3. Replace anonymous sign-in with email login for the team before a real pump is connected.
 4. Field-test the disease model on the team's own leaf photos (the guide requires it). Fine-tune MobileNetV2 for longer on a Colab GPU to approach the published ~98%.
