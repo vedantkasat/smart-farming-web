@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # to publish the APK as a pre-release
     defaults:
       run:
         working-directory: flutter_app
@@ -39,3 +41,17 @@ jobs:
         with:
           name: smart-farming-web
           path: flutter_app/build/web
+      # Latest APK at a fixed link, easy to open on a phone:
+      # https://github.com/<owner>/smart-farming-web/releases/tag/apk-latest
+      - name: Publish APK
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Smart Farming APK (latest build)
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          body: |
+            Test build of the Flutter app from `${{ github.ref_name }}` (${{ github.sha }}).
+            On the phone: download app-release.apk, open it, allow "install unknown apps" for your browser.
+          files: flutter_app/build/app/outputs/flutter-apk/app-release.apk

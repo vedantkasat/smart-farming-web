@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// Project smart-farming-app-49954. The web API key is public by design and
 /// restricted to six Firebase APIs.
 ///
-/// Android: register an Android app (package in.aissmsioit.b18.smart_farming)
+/// Android: register an Android app (package com.aissmsioit.b18.smartfarming)
 /// in the Firebase console, then run `flutterfire configure` or paste its appId
 /// below. Until then the Android build runs the offline demo.
 class FirebaseConfig {

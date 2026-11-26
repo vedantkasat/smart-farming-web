@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "`in`.aissmsioit.b18.smart_farming"
+    namespace = "com.aissmsioit.b18.smartfarming"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "`in`.aissmsioit.b18.smart_farming"
+        applicationId = "com.aissmsioit.b18.smartfarming"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

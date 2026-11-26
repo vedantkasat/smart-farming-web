@@ -1,4 +1,4 @@
-package `in`.aissmsioit.b18.smart_farming
+package com.aissmsioit.b18.smartfarming
 
 import io.flutter.embedding.android.FlutterActivity
 
