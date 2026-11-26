@@ -16,7 +16,7 @@ English, Hindi and Marathi labels (`lib/i18n.dart`).
 
 ## Run it
 
-Install Flutter 3.50 (stable), then from this folder:
+Install Flutter 3.50 (stable) and JDK 21 (Android Studio ships it), then from this folder:
 
 ```bash
 flutter pub get
