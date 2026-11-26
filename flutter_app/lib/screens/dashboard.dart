@@ -8,7 +8,6 @@ import '../main.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/line_chart.dart';
-import '../widgets/survey_map.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -29,22 +28,8 @@ class DashboardScreen extends StatelessWidget {
 
     final field = EntryCard(
       head: Text(tr(L, 'soil')),
-      headTrailing: Flexible(
-        child: Text('$cropLine, ${fmtTime(f.ts)}', overflow: TextOverflow.ellipsis, textAlign: TextAlign.right),
-      ),
+      headTrailing: Text(fmtTime(f.ts)),
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Furrow.ink)),
-          ),
-          child: SurveyMap(
-            plotName: '${c.loc.isNotEmpty ? '${c.loc}, ' : ''}${c.cropInfo.name} plot, ${fmtNum(c.area)} acre',
-            pump: f.pump,
-            ok: f.fault.ok,
-            soil: f.soil,
-            time: fmtTime(f.ts),
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -62,7 +47,9 @@ class DashboardScreen extends StatelessWidget {
                   StatusChip(soilText, kind: soilKind),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 6),
+              Text(c.loc.isNotEmpty ? '${c.loc} · $cropLine' : cropLine, style: Furrow.body(13.5, color: Furrow.muted)),
+              const SizedBox(height: 16),
               MoistureScale(soil: f.soil, th: th),
               const SizedBox(height: 10),
               _Legend(th: th, lang: L),

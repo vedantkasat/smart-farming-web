@@ -111,7 +111,7 @@ class AlertsScreen extends StatelessWidget {
                   ),
                 ),
               const Note(
-                "On the farm these go out from the ESP32's 4G module over WhatsApp or SMS. This list mirrors alerts/ in Firebase.",
+                "Farmers also get these as SMS and WhatsApp messages. This list mirrors alerts/ in Firebase.",
               ),
             ],
           ),

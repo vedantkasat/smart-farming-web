@@ -29,7 +29,7 @@ Data contract (report Table 7.1). Change it here first, then in the app and the 
 | `pump/command` | App | command: ON / OFF / AUTO, requestedAt (ESP32 deletes it after applying) |
 | `pump/status` | ESP32 | state ON/OFF, mode AUTO/MANUAL, startTime, runMin |
 | `pump/runs/{0..19}` | ESP32 | run log |
-| `config` | App | crop, stage, soil, fc, wp, p, dryLimit, maxRunMin, loc, area |
+| `config` | App | crop, stage, soil, fc, wp, p, dryLimit, maxRunMin, loc |
 | `alerts/{key}` | ESP32, App | type, title, message, time, ack |
 | `disease/{push}` | App | class, crop, name, confidence, accepted, time |
 | `device` | ESP32 | heartbeat, firmware, rssi, source ("esp32" or "simulator"), fault |
@@ -42,7 +42,7 @@ Until the hardware exists, one open copy of the app acts as a **simulated ESP32*
 - Soils (FC/WP %): sandy 12/5, loam 25/12, clay or black cotton 36/22. Crops (p): tomato 0.40, onion 0.30, maize 0.55.
 - Faults (Table 6.4): no valid reading for 3 cycles; reading outside 0–100% is rejected; moisture changes < 0.5% for 30 min while the pump is ON. A fault switches the pump off and blocks Auto. Maximum run 30 min.
 - Manual ON/OFF takes priority over Auto; "Return to Auto" ends manual mode. Every pump command needs a confirm step.
-- Design decisions: no rain sensor, no water tank or water-quantity measurement. Plot area is for records only, not control. Keep the hardware asset-light.
+- Design decisions: no rain sensor, no water tank or water-quantity measurement. No plot area and no plot map in the apps (dropped Nov 2026; area was records-only). Field location is kept. **Report Table 7.1 still lists `area`: update the report.** Keep the hardware asset-light.
 - Farmers get alerts on WhatsApp/SMS (from the ESP32's 4G module). The app supports English, Hindi and Marathi.
 - Disease results below 0.70 confidence are rejected. The "Ask an expert" chat answers only from the app's own data and **never gives pesticide products or doses**; it points to the Kisan Call Centre (1800-180-1551) or the local KVK.
 

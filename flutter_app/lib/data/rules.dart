@@ -71,17 +71,9 @@ class FieldConfig {
   String stage;
   String soil;
   String loc;
-  double area;
   int maxRunMin;
 
-  FieldConfig({
-    this.crop = 'tomato',
-    this.stage = 'vegetative',
-    this.soil = 'loam',
-    this.loc = '',
-    this.area = 1,
-    this.maxRunMin = defaultMaxRunMin,
-  });
+  FieldConfig({this.crop = 'tomato', this.stage = 'vegetative', this.soil = 'loam', this.loc = '', this.maxRunMin = defaultMaxRunMin});
 
   Crop get cropInfo => crops[crop] ?? crops['tomato']!;
   Soil get soilInfo => soils[soil] ?? soils['loam']!;
@@ -115,19 +107,17 @@ class FieldConfig {
       'dryLimit': t.dry,
       'maxRunMin': maxRunMin,
       'loc': loc,
-      'area': area,
       'updatedAt': now,
     };
   }
 
-  Map<String, Object?> toJson() => {'crop': crop, 'stage': stage, 'soil': soil, 'loc': loc, 'area': area, 'maxRunMin': maxRunMin};
+  Map<String, Object?> toJson() => {'crop': crop, 'stage': stage, 'soil': soil, 'loc': loc, 'maxRunMin': maxRunMin};
 
   void apply(Map m) {
     crop = (m['crop'] ?? crop).toString();
     stage = (m['stage'] ?? stage).toString();
     soil = (m['soil'] ?? soil).toString();
     loc = (m['loc'] ?? '').toString();
-    area = (m['area'] is num) ? (m['area'] as num).toDouble() : 1;
     maxRunMin = (m['maxRunMin'] is num) ? (m['maxRunMin'] as num).toInt() : defaultMaxRunMin;
     normalise();
   }

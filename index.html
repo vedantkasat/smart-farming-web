@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600&family=Red+Hat+Text:wght@400;500&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* Hallmark · shape: app screen · genre: modern-minimal · theme: Furrow (picked: farm records) · redesign: full
- * nav: top bar with tabs · signature: the plot as a survey map with the sensor node pinned and its live reading · states: loading, empty, fault, offline, full
+  * nav: top bar with tabs · signature: the field record card with the moisture scale against the dry limit · states: loading, empty, fault, offline, full
  * axes: light/grotesk-sans/warm · posture: committed · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V4 · weakest: E, the disease tab has no model yet, so its result card says so plainly instead of faking one */
 :root {
@@ -82,12 +82,10 @@ main { padding-block: var(--space-xl) var(--space-3xl); }
 .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); margin-bottom: var(--space-md); }
 
 /* signature: the field record */
-.entry { border-radius: var(--radius-entry); background: var(--color-paper-2); box-shadow: 0 0 0 1px var(--color-ink), var(--shadow-lift); overflow: hidden; }
+.entry { align-self: start; border-radius: var(--radius-entry); background: var(--color-paper-2); box-shadow: 0 0 0 1px var(--color-ink), var(--shadow-lift); overflow: hidden; }
 .entry-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg); background: var(--color-ink); color: var(--color-paper-2); }
 .entry-head h3 { color: var(--color-paper-2); }
 .entry-head .num { font-size: var(--text-sm); }
-.map-wrap { position: relative; border-bottom: var(--rule-hair) solid var(--color-ink); background: var(--color-paper); }
-#map { display: block; width: 100%; height: 320px; }
 .reading { padding: var(--space-lg); }
 .reading-top { display: flex; justify-content: space-between; align-items: end; gap: var(--space-md); flex-wrap: wrap; }
 .reading-value { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--tracking-display); font-size: var(--text-3xl); line-height: 1; font-variant-numeric: tabular-nums; }
@@ -208,7 +206,6 @@ code { font-family: var(--font-outlier); font-size: 0.9em; }
   <div class="grid">
     <article class="entry span-7" aria-labelledby="h-field">
       <div class="entry-head"><h3 id="h-field" data-t="soil">Soil moisture</h3><span class="small"><span id="cropline"></span>, <span class="num" id="stamp">--:--</span></span></div>
-      <div class="map-wrap"><canvas id="map" role="img" aria-label="Survey map of the plot with the sensor node pinned"></canvas></div>
       <div class="reading">
         <div class="reading-top">
           <div class="reading-value"><span id="soil">--</span><span class="unit">%</span></div>
@@ -308,7 +305,7 @@ code { font-family: var(--font-outlier); font-size: 0.9em; }
   <div class="screen-head"><h2 id="h-al">Alerts</h2><div class="controls" style="margin:0"><button class="btn btn--sm" id="ackall">Acknowledge all</button><button class="btn btn--sm" id="clearal">Clear all</button></div></div>
   <section class="sheet">
     <div id="allist"></div>
-    <p class="note">On the farm these go out from the ESP32's 4G module over WhatsApp or SMS. This list mirrors <code>alerts/</code> in Firebase.</p>
+    <p class="note">Farmers also get these as SMS and WhatsApp messages. This list mirrors <code>alerts/</code> in Firebase.</p>
   </section>
 </section>
 
@@ -336,7 +333,6 @@ code { font-family: var(--font-outlier); font-size: 0.9em; }
       <div class="field"><label for="stage">Growth stage, set by the farmer</label><select id="stage"></select></div>
       <div class="field"><label for="soilt">Soil type</label><select id="soilt"></select></div>
       <div class="field"><label for="loc">Field location</label><input id="loc" placeholder="Pune, Maharashtra"></div>
-      <div class="field"><label for="area">Plot area in acres, for analysis only</label><input type="number" id="area" min="0" step="0.1" value="1"></div>
       <div class="field"><label for="maxrunin">Longest pump run in minutes</label><input type="number" id="maxrunin" min="1" max="120" value="30"></div>
     </section>
     <section class="sheet span-7"><h3 style="margin-bottom:var(--space-md)">Irrigation threshold</h3>
@@ -360,7 +356,7 @@ hi:{soil:'मिट्टी की नमी',temp:'तापमान',hum:'�
 mr:{soil:'मातीतील ओलावा',temp:'तापमान',hum:'आर्द्रता',sensor:'सेन्सर स्थिती',pump:'सिंचन पंप',drylimit:'कोरडेपणाची मर्यादा',live:'मातीतील ओलावा, गेली ३० मिनिटे',tabs:['डॅशबोर्ड','इतिहास','पान तपासणी','अलर्ट','तज्ज्ञांना विचारा','शेत सेटअप']}};
 const $=id=>document.getElementById(id);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const cfg={crop:'tomato',stage:'vegetative',soil:'loam',loc:'',area:1,maxRunMin:30};
+const cfg={crop:'tomato',stage:'vegetative',soil:'loam',loc:'',maxRunMin:30};
 try{Object.assign(cfg,JSON.parse(localStorage.getItem('sf-cfg2')||'{}'))}catch(e){}
 function stageOf(){const st=CROPS[cfg.crop].stages;return st.find(x=>x[0]===cfg.stage)||st[0]}
 function thresholds(){const s=SOILS[cfg.soil]||SOILS.loam,c=CROPS[cfg.crop]||CROPS.tomato,sens=!!stageOf()[2];
@@ -427,7 +423,7 @@ DataSource.fault={ok:true,msg:'All readings normal'};
 const TABS=[['dash','dashboard'],['hist','history'],['dis','leaf-check'],['alerts','alerts'],['ask','ask-expert'],['set','field-setup']];
 let cur='dash';
 function buildTabs(){const L=I18[$('lang').value].tabs;$('tabs').innerHTML=TABS.map((t,i)=>`<button class="tab" role="tab" data-v="${t[0]}" aria-selected="${t[0]===cur}" aria-controls="v-${t[0]}">${L[i]}</button>`).join('')}
-function show(v){cur=v;document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!=='v-'+v);buildTabs();render();if(v==='dash')drawMap(true)}
+function show(v){cur=v;document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!=='v-'+v);buildTabs();render();}
 $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const h=TABS.find(t=>t[0]===b.dataset.v)[1];if(location.hash==='#'+h)show(b.dataset.v);else location.hash=h};
 function fromHash(){const h=location.hash.slice(1);const t=TABS.find(x=>x[1]===h);show(t?t[0]:'dash')}
 window.addEventListener('hashchange',fromHash);
@@ -437,12 +433,12 @@ $('lang').onchange=()=>{buildTabs();const L=I18[$('lang').value];document.queryS
 function fill(sel,pairs){sel.innerHTML=pairs.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}
 fill($('crop'),Object.entries(CROPS).map(([k,v])=>[k,v.n]));fill($('soilt'),Object.entries(SOILS).map(([k,v])=>[k,v.n]));
 function fillStages(){fill($('stage'),CROPS[cfg.crop].stages.map(([k,n,sv])=>[k,n+(sv?' (sensitive)':'')]));if(!CROPS[cfg.crop].stages.some(x=>x[0]===cfg.stage))cfg.stage=CROPS[cfg.crop].stages[0][0];$('stage').value=cfg.stage}
-function fillCfgInputs(){if(!CROPS[cfg.crop])cfg.crop='tomato';if(!SOILS[cfg.soil])cfg.soil='loam';$('crop').value=cfg.crop;fillStages();$('soilt').value=cfg.soil;$('loc').value=cfg.loc||'';$('area').value=cfg.area;$('maxrunin').value=cfg.maxRunMin}
+function fillCfgInputs(){if(!CROPS[cfg.crop])cfg.crop='tomato';if(!SOILS[cfg.soil])cfg.soil='loam';$('crop').value=cfg.crop;fillStages();$('soilt').value=cfg.soil;$('loc').value=cfg.loc||'';$('maxrunin').value=cfg.maxRunMin}
 fillCfgInputs();
-function configDoc(){const T=thresholds();return{crop:cfg.crop,stage:cfg.stage,soil:cfg.soil,fc:T.fc,wp:T.wp,p:T.p,dryLimit:T.dry,maxRunMin:cfg.maxRunMin,loc:cfg.loc||'',area:cfg.area,updatedAt:Cloud.now()}}
-function saveCfg(){cfg.crop=$('crop').value;fillStages();cfg.stage=$('stage').value;cfg.soil=$('soilt').value;cfg.loc=$('loc').value;cfg.area=+$('area').value;cfg.maxRunMin=Math.max(1,+$('maxrunin').value||30);
-  try{localStorage.setItem('sf-cfg2',JSON.stringify(cfg))}catch(e){};if(Cloud.ok)Cloud.ref('config').set(configDoc());mapBase=null;render()}
-['crop','stage','soilt','loc','area','maxrunin'].forEach(i=>$(i).onchange=saveCfg);
+function configDoc(){const T=thresholds();return{crop:cfg.crop,stage:cfg.stage,soil:cfg.soil,fc:T.fc,wp:T.wp,p:T.p,dryLimit:T.dry,maxRunMin:cfg.maxRunMin,loc:cfg.loc||'',updatedAt:Cloud.now()}}
+function saveCfg(){cfg.crop=$('crop').value;fillStages();cfg.stage=$('stage').value;cfg.soil=$('soilt').value;cfg.loc=$('loc').value;cfg.maxRunMin=Math.max(1,+$('maxrunin').value||30);
+  try{localStorage.setItem('sf-cfg2',JSON.stringify(cfg))}catch(e){};if(Cloud.ok)Cloud.ref('config').set(configDoc());render()}
+['crop','stage','soilt','loc','maxrunin'].forEach(i=>$(i).onchange=saveCfg);
 
 /* ---------- commands: pump/command (report table 7.1) ---------- */
 function applyFault(k){const s=DataSource.state;
@@ -485,7 +481,7 @@ const Cloud={ok:false,owner:false,me:Math.random().toString(36).slice(2,10),dev:
     const ring=(p,key,desc)=>this.ref(p).on('value',s=>{if(this.owner)return;S[key]=Object.values(s.val()||{}).sort((a,b)=>desc?b.seq-a.seq:a.seq-b.seq);render()});
     ring('sensors/history','hist',false);ring('pump/runs','runs',true);
     this.ref('alerts').on('value',s=>{S.alerts=Object.entries(s.val()||{}).map(([k,x])=>Object.assign(x,{key:k})).sort((x,y)=>y.time-x.time);render()});
-    this.ref('config').on('value',s=>{const v=s.val();if(!v)return;Object.assign(cfg,{crop:v.crop,stage:v.stage,soil:v.soil,maxRunMin:v.maxRunMin||30,loc:v.loc||'',area:v.area||1});fillCfgInputs();mapBase=null;render()});
+    this.ref('config').on('value',s=>{const v=s.val();if(!v)return;Object.assign(cfg,{crop:v.crop,stage:v.stage,soil:v.soil,maxRunMin:v.maxRunMin||30,loc:v.loc||''});fillCfgInputs();render()});
     this.ref('pump/command').on('value',s=>{const c=s.val();if(!c||!this.owner)return;this.ref('pump/command').remove();S.command(c.command)});
     this.ref('device/simFaults').on('value',s=>{const c=s.val();if(!c||!this.owner)return;this.ref('device/simFaults').remove();applyFault(c.k)});
   },
@@ -506,59 +502,6 @@ const Cloud={ok:false,owner:false,me:Math.random().toString(36).slice(2,10),dev:
     Object.assign(up,{'device/owner':this.me,'device/heartbeat':now,'device/source':'simulator','device/firmware':'web-sim-1.0','device/rssi':null,'device/simT':S.simT,'device/fault':S.fault,'device/seq':this.seq});
     this.ref('/').update(up).catch(e=>console.warn('Firebase write failed',e))}
 };
-
-/* ---------- the survey map ---------- */
-let mapBase=null,mapW=0;
-function rng(seed){return()=>((seed=Math.imul(seed^seed>>>15,seed|1)^seed+Math.imul(seed^seed>>>7,seed|61),((seed^seed>>>14)>>>0)/4294967296))}
-function height(x,y){return Math.sin(x*.011+1.3)*Math.cos(y*.013-.4)*1.1+Math.sin((x+y)*.007+2)*.9+Math.cos(x*.004-y*.009)*1.4+Math.sin(x*.023+y*.017)*.25}
-function holding(w,h){return[[.24*w,.2*h],[.72*w,.14*h],[.8*w,.7*h],[.3*w,.82*h]]}
-function buildMap(w,h){
-  const dpr=devicePixelRatio||1,cv=document.createElement('canvas');cv.width=w*dpr;cv.height=h*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);
-  c.fillStyle=css('--color-paper');c.fillRect(0,0,w,h);
-  const r=rng(7);c.fillStyle=css('--color-paper-3');for(let i=0;i<w*h/90;i++){c.globalAlpha=.35*r();c.fillRect(r()*w,r()*h,1,1)}c.globalAlpha=1;
-  // contours by marching squares
-  const st=6,nx=Math.ceil(w/st)+1,ny=Math.ceil(h/st)+1,g=[];
-  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)g[j*nx+i]=height(i*st,j*st);
-  const lv=[];for(let v=-3;v<=3;v+=.25)lv.push(v);
-  lv.forEach((L,k)=>{c.strokeStyle=css('--color-contour');c.lineWidth=k%5===0?1.4:.7;c.globalAlpha=k%5===0?.9:.55;c.beginPath();
-    for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){
-      const a=g[j*nx+i],b=g[j*nx+i+1],d=g[(j+1)*nx+i],e=g[(j+1)*nx+i+1],x=i*st,y=j*st,p=[];
-      const t=(u,v)=>(L-u)/(v-u);
-      if((a<L)!==(b<L))p.push([x+st*t(a,b),y]);
-      if((b<L)!==(e<L))p.push([x+st,y+st*t(b,e)]);
-      if((d<L)!==(e<L))p.push([x+st*t(d,e),y+st]);
-      if((a<L)!==(d<L))p.push([x,y+st*t(a,d)]);
-      for(let q=0;q+1<p.length;q+=2){c.moveTo(p[q][0],p[q][1]);c.lineTo(p[q+1][0],p[q+1][1])}
-    }c.stroke()});
-  c.globalAlpha=1;
-  // stream
-  c.strokeStyle=css('--color-water');c.lineWidth=3;c.beginPath();c.moveTo(.02*w,h);c.bezierCurveTo(.18*w,.7*h,.06*w,.4*h,.16*w,0);c.stroke();
-  // lane with a gate
-  c.strokeStyle=css('--color-ink');c.lineWidth=1;[.9*w,.94*w].forEach(x=>{c.beginPath();c.moveTo(x,0);c.lineTo(x-.04*w,h);c.stroke()});
-  // hedges, dotted
-  c.fillStyle=css('--color-hedge');const H=holding(w,h);
-  [[H[0],[.24*w,0]],[H[3],[.3*w,h]],[H[1],[.88*w,.1*h]]].forEach(([a,b])=>{const n=Math.hypot(b[0]-a[0],b[1]-a[1])/5;for(let i=0;i<n;i++){c.beginPath();c.arc(a[0]+(b[0]-a[0])*i/n,a[1]+(b[1]-a[1])*i/n,1.3,0,7);c.fill()}});
-  // shed, hatched
-  c.save();c.translate(.84*w,.78*h);c.strokeStyle=css('--color-ink');c.lineWidth=1;c.strokeRect(0,0,26,18);c.beginPath();c.rect(0,0,26,18);c.clip();c.globalAlpha=.5;c.beginPath();for(let i=-18;i<26;i+=4){c.moveTo(i,18);c.lineTo(i+18,0)}c.stroke();c.restore();
-  // fold creases
-  c.globalAlpha=.5;c.strokeStyle=css('--color-paper-2');c.beginPath();c.moveTo(w/3,0);c.lineTo(w/3,h);c.moveTo(0,h/2);c.lineTo(w,h/2);c.stroke();
-  c.strokeStyle=css('--color-grid-strong');c.beginPath();c.moveTo(w/3+1,0);c.lineTo(w/3+1,h);c.moveTo(0,h/2+1);c.lineTo(w,h/2+1);c.stroke();c.globalAlpha=1;
-  // the holding, edged in tangerine
-  c.strokeStyle=css('--color-accent');c.lineWidth=3;c.beginPath();H.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.closePath();c.stroke();
-  // plot name along its edge
-  c.save();c.translate(H[0][0]+10,H[0][1]+20);c.rotate(Math.atan2(H[1][1]-H[0][1],H[1][0]-H[0][0]));c.fillStyle=css('--color-ink-2');c.font='500 13px "Red Hat Text", sans-serif';
-  c.fillText((cfg.loc?cfg.loc+', ':'')+CROPS[cfg.crop].n+' plot, '+cfg.area+' acre',0,0);c.restore();
-  return cv}
-function drawMap(force){
-  const cv=$('map');if(!cv||$('v-dash').hidden)return;const w=cv.clientWidth,h=cv.clientHeight;if(!w)return;
-  if(!mapBase||force||mapW!==w){mapBase=buildMap(w,h);mapW=w}
-  const dpr=devicePixelRatio||1;cv.width=w*dpr;cv.height=h*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);c.drawImage(mapBase,0,0,w,h);
-  const s=DataSource.state,f=DataSource.fault,px=.52*w,py=.5*h;
-  if(s.pump){c.strokeStyle=css('--color-water');c.lineWidth=2;c.setLineDash([6,5]);c.beginPath();c.moveTo(.9*w,.62*h);c.lineTo(.78*w,.6*h);c.lineTo(px,py);c.stroke();c.setLineDash([])}
-  c.beginPath();c.arc(px,py,8,0,7);c.fillStyle=f.ok?css('--color-accent'):css('--color-error');c.fill();c.lineWidth=2;c.strokeStyle=css('--color-ink');c.stroke();
-  const txt=`Node 1   ${f.ok?(+s.soil).toFixed(1)+' %':'fault'}   ${fmtT(s.ts)}`;
-  c.font='500 12px "Red Hat Mono", monospace';const tw=c.measureText(txt).width+16;
-  const tx=px+14+tw>w-4?px-14-tw:px+14;c.fillStyle=css('--color-ink');c.fillRect(tx,py-12,tw,24);c.fillStyle=css('--color-paper-2');c.fillText(txt,tx+8,py+4)}
 
 /* ---------- charts ---------- */
 function draw(cv,key,colorVar,opts={}){
@@ -582,7 +525,7 @@ let scaleMax=50;const pos=v=>Math.max(0,Math.min(100,v/scaleMax*100));
 const ALERT_LABEL={dry:['Dry soil','chip--warn'],pump:['Pump','chip--plain'],fault:['Fault','chip--bad'],disease:['Disease','chip--warn']};
 function render(){
   const s=DataSource.state,T=thresholds(),f=DataSource.fault,st=stageOf();scaleMax=Math.ceil((T.fc+8)/5)*5;
-  $('cropline').textContent=`${CROPS[cfg.crop].n}, ${st[1].toLowerCase()}${st[2]?' (sensitive)':''}, ${SOILS[cfg.soil].n.toLowerCase()} soil`;
+  $('cropline').textContent=`${cfg.loc?cfg.loc+' · ':''}${CROPS[cfg.crop].n}, ${st[1].toLowerCase()}${st[2]?' (sensitive)':''}, ${SOILS[cfg.soil].n.toLowerCase()} soil`;
   $('soil').textContent=(+s.soil).toFixed(1);$('temp').textContent=s.temp;$('hum').textContent=s.hum;$('stamp').textContent=fmtT(s.ts);
   $('soilbar').style.transform=`scaleX(${pos(s.soil)/100})`;$('needle').style.transform=`translateX(${pos(s.soil)}%)`;
   $('mwp').style.left=pos(T.wp)+'%';$('drymark').style.left=pos(T.dry)+'%';$('mstop').style.left=pos(T.stop)+'%';$('mfc').style.left=pos(T.fc)+'%';
@@ -605,11 +548,11 @@ function render(){
   $('pinfo').textContent=s.mode==='auto'?(f.ok?`Starts at ${T.dry}%, stops at field capacity (${T.fc}%).`:'Auto is blocked while a sensor fault is active.'):'Manual: the pump follows your ON and OFF. Return to Auto when done.';
   $('pon').disabled=s.pump||f.code==='nodata';$('poff').disabled=!s.pump&&s.mode==='manual';$('pauto').disabled=s.mode==='auto';
   const unack=DataSource.alerts.filter(a=>!a.ack).length;const at=[...document.querySelectorAll('.tab')].find(b=>b.dataset.v==='alerts');if(at)at.textContent=I18[$('lang').value].tabs[3]+(unack?` (${unack})`:'');
-  if(cur==='dash'){draw($('c1'),'moisture','--color-water',{ref:T.dry,pump:true,last:6});drawMap()}
+  if(cur==='dash'){draw($('c1'),'moisture','--color-water',{ref:T.dry,pump:true,last:6})}
   if(cur==='hist'){draw($('c2'),'moisture','--color-water',{ref:T.dry,pump:true});draw($('c3'),'temperature','--color-contour');draw($('c4'),'humidity','--color-green');
     $('runs').innerHTML=DataSource.runs.length?DataSource.runs.slice(0,10).map(r=>`<tr><td class="num">${fmtT(r.t)}</td><td class="num">${r.dur} min</td><td>${r.m}${r.why?', '+r.why:''}</td><td class="num">${(+r.sm).toFixed(1)} %</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No pump runs yet. They appear here when the pump starts, in either mode.</td></tr>'}
   if(cur==='alerts')$('allist').innerHTML=DataSource.alerts.length?DataSource.alerts.map((a,i)=>{const L=ALERT_LABEL[a.type]||['Info','chip--plain'];return `<div class="alert${a.ack?' ack':''}"><span class="chip ${L[1]}">${L[0]}</span><div><b>${a.title}</b><p class="small muted">${a.message}</p></div><span class="num small muted">${fmtT(a.time)}</span>${a.ack?'<span class="small muted">Seen</span>':`<button class="btn btn--sm" data-i="${i}">Acknowledge</button>`}</div>`}).join(''):'<p class="empty">No alerts. Dry soil, pump changes, sensor faults and disease results show up here.</p>';
-  if(cur==='set')$('calc').innerHTML=`<tbody><tr><th>Crop</th><td>${CROPS[cfg.crop].n}, p <span class="num">${CROPS[cfg.crop].p}</span></td></tr><tr><th>Growth stage</th><td>${st[1]}${st[2]?', sensitive: p × 0.75':''}</td></tr><tr><th>Depletion p used</th><td class="num">${T.p}</td></tr><tr><th>Field capacity (FC)</th><td class="num">${T.fc} %</td></tr><tr><th>Wilting point (WP)</th><td class="num">${T.wp} %</td></tr><tr class="total"><th>Dry limit, pump starts</th><td class="num"><b>${T.dry} %</b></td></tr><tr><th>Pump stops</th><td class="num"><b>${T.stop} %</b> (FC)</td></tr><tr><th>Maximum run</th><td class="num">${cfg.maxRunMin} min</td></tr><tr><th>Plot area</th><td class="num">${cfg.area} acre, records only</td></tr></tbody>`;
+  if(cur==='set')$('calc').innerHTML=`<tbody><tr><th>Crop</th><td>${CROPS[cfg.crop].n}, p <span class="num">${CROPS[cfg.crop].p}</span></td></tr><tr><th>Growth stage</th><td>${st[1]}${st[2]?', sensitive: p × 0.75':''}</td></tr><tr><th>Depletion p used</th><td class="num">${T.p}</td></tr><tr><th>Field capacity (FC)</th><td class="num">${T.fc} %</td></tr><tr><th>Wilting point (WP)</th><td class="num">${T.wp} %</td></tr><tr class="total"><th>Dry limit, pump starts</th><td class="num"><b>${T.dry} %</b></td></tr><tr><th>Pump stops</th><td class="num"><b>${T.stop} %</b> (FC)</td></tr><tr><th>Maximum run</th><td class="num">${cfg.maxRunMin} min</td></tr></tbody>`;
 }
 DataSource.on(render);
 
@@ -696,9 +639,9 @@ $('send').onclick=send;$('q').onkeydown=e=>{if(e.key==='Enter')send()};
 
 /* ---------- boot ---------- */
 let booted=false;
-window.addEventListener('resize',()=>{mapBase=null;render()});
+window.addEventListener('resize',()=>{render()});
 fromHash();
-if(document.fonts)document.fonts.ready.then(()=>{mapBase=null;render()});
+if(document.fonts)document.fonts.ready.then(()=>{render()});
 fetch('model/metrics.json').then(r=>r.json()).then(m=>$('macc').textContent=(m.test_accuracy*100).toFixed(1)+' %').catch(()=>{});
 (async()=>{
   const live=await Cloud.init();booted=true;
