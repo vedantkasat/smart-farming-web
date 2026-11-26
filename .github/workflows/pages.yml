@@ -1,0 +1,57 @@
+name: GitHub Pages
+
+# Publishes the site on every push to main:
+#   https://vedantkasat.github.io/smart-farming-web/       the original web app (index.html)
+#   https://vedantkasat.github.io/smart-farming-web/app/   the Flutter web app
+# Needs Settings -> Pages -> Source: "GitHub Actions" (set once).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.50.1
+          channel: stable
+          cache: true
+      - name: Flutter web
+        working-directory: flutter_app
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /smart-farming-web/app/
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          rsync -a --exclude '.git*' --exclude '_site' --exclude 'flutter_app' --exclude 'training' \
+                --exclude 'firebase' --exclude 'CLAUDE.md' ./ _site/
+          cp -r flutter_app/build/web _site/app
+          touch _site/.nojekyll
+          du -sh _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}app/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

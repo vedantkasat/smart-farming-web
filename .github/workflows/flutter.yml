@@ -1,0 +1,57 @@
+name: Flutter app
+
+on:
+  push:
+    paths: ['flutter_app/**', 'model/**', '.github/workflows/flutter.yml']
+  pull_request:
+    paths: ['flutter_app/**', 'model/**']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # to publish the APK as a pre-release
+    defaults:
+      run:
+        working-directory: flutter_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'   # Android lint in this toolchain needs JDK 21
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.50.1
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Android APK
+        run: flutter build apk --release
+      - name: Web
+        run: flutter build web --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smart-farming-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smart-farming-web
+          path: flutter_app/build/web
+      # Latest APK at a fixed link, easy to open on a phone:
+      # https://github.com/<owner>/smart-farming-web/releases/tag/apk-latest
+      - name: Publish APK
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Smart Farming APK (latest build)
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          body: |
+            Test build of the Flutter app from `${{ github.ref_name }}` (${{ github.sha }}).
+            On the phone: download app-release.apk, open it, allow "install unknown apps" for your browser.
+          files: flutter_app/build/app/outputs/flutter-apk/app-release.apk
