@@ -148,6 +148,32 @@ class ConnChip extends StatelessWidget {
         : !f.fault.ok
         ? ('Live, sensor fault', ChipKind.warn)
         : (f.owner ? 'Live, simulating here' : (f.deviceSource == 'esp32' ? 'Live, ESP32' : 'Live, simulated ESP32'), ChipKind.ok);
-    return StatusChip(text, kind: kind);
+    final chip = StatusChip(f.connecting ? 'Connecting' : text, kind: kind);
+    if (f.live || !f.booted) return chip;
+    // Offline: tap to see why and try again.
+    return InkWell(
+      borderRadius: BorderRadius.circular(Furrow.radiusPill),
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Not connected to Firebase'),
+          content: Text(
+            'The app is running the offline demo: the simulator runs on this device and nothing is synced.\n\n'
+            'Reason: ${f.cloudError ?? 'unknown'}',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close')),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(c);
+                f.retryCloud();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+      child: chip,
+    );
   }
 }

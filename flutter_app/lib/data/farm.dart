@@ -93,7 +93,30 @@ class Farm extends ChangeNotifier {
       for (var i = 0; i < 8; i++) {
         _tick(8);
       }
-      _timer = Timer.periodic(const Duration(seconds: 2), (_) => _tick(speed));
+      var n = 0;
+      _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+        _tick(speed);
+        if (++n % 30 == 0) retryCloud(); // try Firebase again every minute
+      });
+    }
+    notifyListeners();
+  }
+
+  bool connecting = false;
+
+  /// Tries Firebase again (from the Retry button, or every minute while offline).
+  Future<void> retryCloud() async {
+    if (live || connecting) return;
+    connecting = true;
+    notifyListeners();
+    final ok = await _initCloud();
+    connecting = false;
+    if (ok) {
+      live = true;
+      cloudError = null;
+      _timer?.cancel();
+      _step();
+      _timer = Timer.periodic(const Duration(seconds: 2), (_) => _step());
     }
     notifyListeners();
   }
@@ -389,18 +412,23 @@ class Farm extends ChangeNotifier {
       cloudError = 'Firebase is not set up for this platform yet';
       return false;
     }
+    var stage = 'starting Firebase';
+    const wait = Duration(seconds: 15);
     try {
-      final app = await Firebase.initializeApp(options: opts).timeout(const Duration(seconds: 8));
-      await FirebaseAuth.instanceFor(app: app).signInAnonymously().timeout(const Duration(seconds: 8));
-      _db = FirebaseDatabase.instanceFor(app: app, databaseURL: FirebaseConfig.databaseURL).ref();
-      final d = await _db!.child('device').get().timeout(const Duration(seconds: 8));
+      final app = Firebase.apps.isNotEmpty ? Firebase.app() : await Firebase.initializeApp(options: opts).timeout(wait);
+      stage = 'anonymous sign-in';
+      final auth = FirebaseAuth.instanceFor(app: app);
+      if (auth.currentUser == null) await auth.signInAnonymously().timeout(wait);
+      stage = 'reading the database';
+      _db ??= FirebaseDatabase.instanceFor(app: app, databaseURL: FirebaseConfig.databaseURL).ref();
+      final d = await _db!.child('device').get().timeout(wait);
       dev = (d.value as Map?) ?? {};
       _mergeSeq(dev['seq']);
       _listen();
       return true;
     } catch (e) {
-      cloudError = '$e';
-      debugPrint('Firebase not reachable, running the offline demo: $e');
+      cloudError = 'Failed while $stage: ${e is TimeoutException ? 'no answer in 15 s (check the internet connection)' : e}';
+      debugPrint('Firebase not reachable, running the offline demo: $cloudError');
       return false;
     }
   }
