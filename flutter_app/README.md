@@ -33,9 +33,8 @@ The release build is signed with the debug key, which is fine for the team's pho
 
 `lib/firebase_options.dart` holds the web config for project `smart-farming-app-49954` (the same as the web app).
 
-**Android needs one step in the Firebase console:** add an Android app with package `com.aissmsioit.b18.smartfarming`,
-then copy its App ID (it contains `:android:`) into `FirebaseConfig.androidAppId`. Running `flutterfire configure` does the same.
-Until then the Android app runs the **offline demo** (the simulator on the phone, nothing synced), and the chip in the top bar says so.
+The Android app (`com.aissmsioit.b18.smartfarming`) is registered in Firebase and its App ID is in `FirebaseConfig.androidAppId`.
+If Firebase can't be reached, the app falls back to the **offline demo** and the chip in the top bar says so.
 
 Data contract: see `CLAUDE.md` / report Table 7.1. All reads and writes are in `lib/data/farm.dart`.
 

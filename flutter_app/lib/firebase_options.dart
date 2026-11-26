@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 /// Project smart-farming-app-49954. The web API key is public by design and
 /// restricted to six Firebase APIs.
 ///
-/// Android: register an Android app (package com.aissmsioit.b18.smartfarming)
-/// in the Firebase console, then run `flutterfire configure` or paste its appId
-/// below. Until then the Android build runs the offline demo.
+/// Android: app com.aissmsioit.b18.smartfarming is registered in the Firebase console.
+/// Its appId is below. The API key is the project's web key (restricted to Firebase APIs).
+///
 class FirebaseConfig {
   static const databaseURL = 'https://smart-farming-app-49954-default-rtdb.asia-southeast1.firebasedatabase.app';
 
@@ -21,7 +21,7 @@ class FirebaseConfig {
   );
 
   /// Fill in after registering the Android app (the appId contains ":android:").
-  static const androidAppId = '';
+  static const androidAppId = '1:359391759402:android:b777994e1cb3cc98f50753';
   static const androidApiKey = 'AIzaSyAxRyRRtE_yOjZwiE1h_g_R7CIfpfrz1gg';
 
   static FirebaseOptions? get current {

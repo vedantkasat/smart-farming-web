@@ -55,7 +55,7 @@ Until the hardware exists, one open copy of the app acts as a **simulated ESP32*
 
 ## Open work
 
-1. Flutter app built in `flutter_app/` (Android + web). Still to do: register the Android app in Firebase and set `androidAppId` in `lib/firebase_options.dart`; decide whether GitHub Pages should serve the Flutter web build instead of `index.html`. Keep both apps in step until then.
+1. Flutter app built in `flutter_app/` (Android + web). Android app is registered in Firebase (App ID in `lib/firebase_options.dart`). CI publishes the APK as the `apk-latest` pre-release. Still to do: decide whether GitHub Pages should serve the Flutter web build instead of `index.html`. Keep both apps in step until then.
 2. ESP32 firmware (when hardware is finalised): follow the data contract, set `device.source = "esp32"`, use NTP time, enforce max run in manual mode too.
 3. Replace anonymous sign-in with email login for the team before a real pump is connected.
 4. Field-test the disease model on the team's own leaf photos (the guide requires it). Fine-tune MobileNetV2 for longer on a Colab GPU to approach the published ~98%.
