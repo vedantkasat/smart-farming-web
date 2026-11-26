@@ -29,6 +29,12 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # Keep one signing key across builds, so a new APK installs over the old one.
+      # (The release build is signed with the debug key; Gradle creates it on the first run.)
+      - uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
       - name: Android APK
         run: flutter build apk --release
       - name: Web
@@ -44,7 +50,7 @@ jobs:
       # Latest APK at a fixed link, easy to open on a phone:
       # https://github.com/<owner>/smart-farming-web/releases/tag/apk-latest
       - name: Publish APK
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main'   # only main, so every published APK has the same key
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest

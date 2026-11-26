@@ -28,7 +28,9 @@ flutter test                   # rules, simulator, expert and app-shell tests
 Build an APK to share with the team: `flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`.
 Live web version: https://vedantkasat.github.io/smart-farming-web/app/ (deployed by `.github/workflows/pages.yml` on every push to `main`).
 GitHub Actions (`.github/workflows/flutter.yml`) also builds the APK and the web app on every push that touches the app or the model; download them from the run's **Artifacts**.
-The release build is signed with the debug key, which is fine for the team's phones but not for the Play Store.
+The release build is signed with a debug key that CI keeps in its cache, so each new APK from `main` installs over the last one.
+If that cache ever expires (7 days without a build), Android will say "App not installed": uninstall the old app once and install the new one.
+For the Play Store, make a real upload key and keep it in a GitHub secret.
 
 ## Firebase
 
