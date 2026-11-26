@@ -26,6 +26,7 @@ flutter test                   # rules, simulator, expert and app-shell tests
 ```
 
 Build an APK to share with the team: `flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`.
+Live web version: https://vedantkasat.github.io/smart-farming-web/app/ (deployed by `.github/workflows/pages.yml` on every push to `main`).
 GitHub Actions (`.github/workflows/flutter.yml`) also builds the APK and the web app on every push that touches the app or the model; download them from the run's **Artifacts**.
 The release build is signed with the debug key, which is fine for the team's phones but not for the Play Store.
 

@@ -8,7 +8,7 @@ The Stage-I report is the source of truth. When code and report disagree, follow
 
 ## What is in this repo
 
-- `index.html`: the whole web app (HTML, CSS, JS in one file). No build step. Live on GitHub Pages at https://vedantkasat.github.io/smart-farming-web/ (deploys from `main`, root).
+- `index.html`: the whole web app (HTML, CSS, JS in one file). No build step. Live on GitHub Pages at https://vedantkasat.github.io/smart-farming-web/. The Flutter web build is served at `/app/`. `.github/workflows/pages.yml` deploys both on every push to `main` (Pages source: GitHub Actions).
 - `model/`: leaf disease model for TensorFlow.js. `model.json` is the topology. `weights.json` holds base64 of the float16 weights, because the claude.ai artifact host can't serve `.bin`. `labels.json` lists 23 classes; `metrics.json` has the measured results.
 - `flutter_app/`: the Flutter app (Android + web), a full port of `index.html`. `assets/model` links to `model/`. Firebase sync and the simulator are in `lib/data/farm.dart`.
 - `model/leaf.tflite`: the same model for Android (made by `training/tfjs_to_tflite.py`).
@@ -55,7 +55,7 @@ Until the hardware exists, one open copy of the app acts as a **simulated ESP32*
 
 ## Open work
 
-1. Flutter app built in `flutter_app/` (Android + web). Android app is registered in Firebase (App ID in `lib/firebase_options.dart`). CI publishes the APK as the `apk-latest` pre-release. Still to do: decide whether GitHub Pages should serve the Flutter web build instead of `index.html`. Keep both apps in step until then.
+1. Flutter app built in `flutter_app/` (Android + web). Android app is registered in Firebase (App ID in `lib/firebase_options.dart`). CI publishes the APK as the `apk-latest` pre-release. Both apps are live (web root and `/app/`); keep them in step until the team retires `index.html`.
 2. ESP32 firmware (when hardware is finalised): follow the data contract, set `device.source = "esp32"`, use NTP time, enforce max run in manual mode too.
 3. Replace anonymous sign-in with email login for the team before a real pump is connected.
 4. Field-test the disease model on the team's own leaf photos (the guide requires it). Fine-tune MobileNetV2 for longer on a Colab GPU to approach the published ~98%.

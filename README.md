@@ -1,6 +1,6 @@
 # Smart Farming web app
 
-> The **Flutter app** (Android + web, the report's platform) is in [`flutter_app/`](flutter_app/README.md).
+> The **Flutter app** (Android + web, the report's platform) is in [`flutter_app/`](flutter_app/README.md). Web: https://vedantkasat.github.io/smart-farming-web/app/ · Android APK: [apk-latest release](https://github.com/vedantkasat/smart-farming-web/releases/tag/apk-latest).
 > To retrain the leaf model on your own computer, see [`training/README.md`](training/README.md).
 
 Web dashboard for **AI-Enabled Crop Monitoring and Irrigation System** (Group B-18, AISSMS IOIT, 2026–27).
