@@ -13,8 +13,8 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  final _loc = TextEditingController(), _area = TextEditingController(), _maxRun = TextEditingController();
-  final _locF = FocusNode(), _areaF = FocusNode(), _maxF = FocusNode();
+  final _loc = TextEditingController(), _maxRun = TextEditingController();
+  final _locF = FocusNode(), _maxF = FocusNode();
 
   @override
   void didChangeDependencies() {
@@ -22,16 +22,15 @@ class _SetupScreenState extends State<SetupScreen> {
     final c = FarmScope.of(context).cfg;
     // Keep text fields in step with config from Firebase unless the user is typing.
     if (!_locF.hasFocus) _loc.text = c.loc;
-    if (!_areaF.hasFocus) _area.text = fmtNum(c.area);
     if (!_maxF.hasFocus) _maxRun.text = '${c.maxRunMin}';
   }
 
   @override
   void dispose() {
-    for (final x in [_loc, _area, _maxRun]) {
+    for (final x in [_loc, _maxRun]) {
       x.dispose();
     }
-    for (final x in [_locF, _areaF, _maxF]) {
+    for (final x in [_locF, _maxF]) {
       x.dispose();
     }
     super.dispose();
@@ -90,21 +89,6 @@ class _SetupScreenState extends State<SetupScreen> {
           ),
           gap(),
           TextField(
-            controller: _area,
-            focusNode: _areaF,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: Furrow.mono(15),
-            decoration: const InputDecoration(labelText: 'Plot area in acres, for records only'),
-            onSubmitted: (v) => f.saveConfig((c) => c.area = double.tryParse(v) ?? c.area),
-            onTapOutside: (_) {
-              if (_areaF.hasFocus) {
-                _areaF.unfocus();
-                f.saveConfig((c) => c.area = double.tryParse(_area.text) ?? c.area);
-              }
-            },
-          ),
-          gap(),
-          TextField(
             controller: _maxRun,
             focusNode: _maxF,
             keyboardType: TextInputType.number,
@@ -154,7 +138,6 @@ class _SetupScreenState extends State<SetupScreen> {
           row('Dry limit, pump starts', Text('${fmtNum(th.dry)} %', style: Furrow.mono(14, weight: FontWeight.w500)), total: true),
           row('Pump stops', Text('${fmtNum(th.stop)} % (FC)', style: Furrow.mono(14, weight: FontWeight.w500))),
           row('Maximum run', Text('${c.maxRunMin} min', style: mono)),
-          row('Plot area', Text('${fmtNum(c.area)} acre, records only', style: mono)),
           const Note(
             'Dry limit = FC − p × (FC − WP), report section 6.2. The pump starts at the dry limit and stops at field capacity. '
             'In a sensitive stage p is cut by 25%. Soil values are the report\'s Table 6.2 defaults until the field soil is calibrated.',

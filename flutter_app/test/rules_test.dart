@@ -33,8 +33,9 @@ void main() {
 
   test('config doc has the Table 7.1 fields', () {
     final d = FieldConfig().toDoc(0);
-    for (final k in ['crop', 'stage', 'soil', 'fc', 'wp', 'p', 'dryLimit', 'maxRunMin', 'loc', 'area']) {
+    for (final k in ['crop', 'stage', 'soil', 'fc', 'wp', 'p', 'dryLimit', 'maxRunMin', 'loc']) {
       expect(d.containsKey(k), isTrue, reason: k);
     }
+    expect(d.containsKey('area'), isFalse); // plot area dropped (records only, unused)
   });
 }

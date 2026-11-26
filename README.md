@@ -16,7 +16,7 @@ It follows the Stage-I report: the soil and crop values in Tables 6.2 and 6.3, t
 | Leaf check | Photo, then MobileNetV2 in the browser, then disease, confidence and general care advice. Results below 0.70 confidence are rejected. |
 | Alerts | Dry soil, pump changes, sensor faults and disease results, each with an acknowledge button. |
 | Ask an expert | Answers only from the app's own data and never gives spray doses. Kisan Call Centre (1800-180-1551) and a WhatsApp share of the last leaf check. |
-| Field setup | Crop, growth stage, soil type, plot details and maximum pump run, written to `config` for the ESP32. |
+| Field setup | Crop, growth stage, soil type, field location and maximum pump run, written to `config` for the ESP32. |
 
 English, Hindi and Marathi labels.
 
@@ -35,7 +35,7 @@ Project `smart-farming-app-49954`, Realtime Database in `asia-southeast1`, anony
 | `pump/command` | App | `command`: `ON`, `OFF` or `AUTO`, `requestedAt`. The ESP32 deletes it once applied. |
 | `pump/status` | ESP32 | `state` (`ON`/`OFF`), `mode` (`AUTO`/`MANUAL`), `startTime`, `runMin` |
 | `pump/runs/{0..19}` | ESP32 | run log |
-| `config` | App | `crop`, `stage`, `soil`, `fc`, `wp`, `p`, `dryLimit`, `maxRunMin`, `loc`, `area` |
+| `config` | App | `crop`, `stage`, `soil`, `fc`, `wp`, `p`, `dryLimit`, `maxRunMin`, `loc` |
 | `alerts/{key}` | ESP32, App | `type`, `title`, `message`, `time`, `ack` |
 | `disease/{push id}` | App | `class`, `crop`, `name`, `confidence`, `accepted`, `time` |
 | `device` | ESP32 | `heartbeat`, `firmware`, `rssi`, `source`, `fault` |

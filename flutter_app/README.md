@@ -5,12 +5,12 @@ It is a full port of the web app in `../index.html`: same screens, same rules, s
 
 | Screen | What it does |
 |---|---|
-| Dashboard | Survey map with the sensor node, live soil moisture against wilting point, dry limit, pump stop and field capacity; temperature, humidity and sensor health; pump ON / OFF / Return to Auto, each with a confirm tap; last 30 minutes chart; simulator controls. |
+| Dashboard | Live soil moisture against wilting point, dry limit, pump stop and field capacity; temperature, humidity and sensor health; pump ON / OFF / Return to Auto, each with a confirm tap; last 30 minutes chart; simulator controls. |
 | History | Moisture, temperature and humidity from `sensors/history`, pump run log from `pump/runs`. |
 | Leaf check | Camera or gallery photo, then MobileNetV2 on the device (TFLite on Android, TF.js on the web). Only the chosen crop's classes are compared. Below 0.70 confidence there is no result. Writes `disease/{push}` and a `disease` alert. |
 | Alerts | Mirrors `alerts/`, acknowledge one or all, clear all (with a confirm). |
 | Ask an expert | Answers only from the app's own data, never products or doses; Kisan Call Centre and WhatsApp share. |
-| Field setup | Crop, stage, soil, location, area, maximum run, written to `config`; shows the dry-limit working. |
+| Field setup | Crop, stage, soil, location, maximum run, written to `config`; shows the dry-limit working. |
 
 English, Hindi and Marathi labels (`lib/i18n.dart`).
 
@@ -51,7 +51,7 @@ lib/
   data/farm.dart         simulated ESP32 (6.2 to 6.4), Firebase sync, who simulates (one copy at a time)
   data/expert.dart       Ask an expert
   leaf/                  classifier: engine_tflite.dart (Android), engine_web.dart + web/leaf_model.js (web)
-  screens/, widgets/     the six screens, chart, survey map, confirm button
+  screens/, widgets/     the six screens, chart, moisture scale, confirm button
 ```
 
 The simulator follows the web app exactly: one open copy (web or phone) becomes the simulated ESP32 and writes the ESP32's paths;
